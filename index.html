@@ -247,6 +247,16 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
 /* ── OFFLINE BANNER ───────────────────────────────────────────── */
 .offline-banner{background:var(--amber-l);border-bottom:1px solid var(--amber-m);padding:8px 16px;font-size:12px;color:var(--amber);font-weight:500;text-align:center;display:none;}
 .offline-banner.show{display:block;}
+/* ── MENÚ USUARIO — FLOTANTE ─────────────────────────────────────── */
+#user-menu-overlay{position:fixed;top:0;left:0;right:0;bottom:0;z-index:300;display:none;background:transparent;}
+#user-menu-overlay.open{display:block;}
+#user-menu{position:fixed;top:60px;right:8px;background:#fff;border-radius:var(--r-lg);box-shadow:0 8px 40px rgba(0,0,0,.25);z-index:301;min-width:220px;overflow:hidden;display:none;}
+#user-menu.open{display:block;}
+
+/* ── PANTALLA BÚSQUEDA — CUBRE TODA LA PANTALLA ─────────────────── */
+#search-screen{position:fixed;top:0;left:0;right:0;bottom:0;background:#fff;z-index:500;display:none;flex-direction:column;}
+#search-screen.open{display:flex;}
+
 </style>
 </head>
 <body>
@@ -1508,6 +1518,7 @@ document.addEventListener("DOMContentLoaded",()=>{
 </script>
 </body>
 </html>
+
 
 
 
