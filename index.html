@@ -1197,14 +1197,17 @@ function renderReportes(){
 function toggleUserMenu(){
   const menu = document.getElementById("user-menu");
   const overlay = document.getElementById("user-menu-overlay");
-  const isOpen = menu.classList.contains("open");
+  const isOpen = menu.style.display === "block";
   if(isOpen){ closeUserMenu(); }
-  else { menu.classList.add("open"); overlay.classList.add("open"); }
+  else {
+    menu.style.display = "block";
+    overlay.style.display = "block";
+  }
 }
 
 function closeUserMenu(){
-  document.getElementById("user-menu").classList.remove("open");
-  document.getElementById("user-menu-overlay").classList.remove("open");
+  document.getElementById("user-menu").style.display = "none";
+  document.getElementById("user-menu-overlay").style.display = "none";
 }
 
 function goToProfile(){
@@ -1214,10 +1217,11 @@ function goToProfile(){
 
 function confirmLogout(){
   closeUserMenu();
-  // Diálogo de confirmación
-  if(confirm("¿Seguro que deseas cerrar sesión?")){
-    doLogout();
-  }
+  setTimeout(()=>{
+    if(confirm("¿Seguro que deseas cerrar sesión?")){
+      doLogout();
+    }
+  },200);
 }
 
 function doLogout(){
@@ -1240,9 +1244,10 @@ function doLogout(){
   document.getElementById("l-user").value="";
   document.getElementById("l-pass").value="";
   document.getElementById("login-err").style.display="none";
+  // Reset avatar
+  document.getElementById("top-avatar").textContent="?";
   // Volver al dashboard para la próxima sesión
   goScreen("dashboard", document.getElementById("nav-dashboard"));
-  showToast("Sesión cerrada","");
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -1368,6 +1373,7 @@ document.addEventListener("DOMContentLoaded",()=>{
 </script>
 </body>
 </html>
+
 
 
 
