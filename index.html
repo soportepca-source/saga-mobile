@@ -290,22 +290,50 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
   <!-- TOP BAR -->
   <div class="topbar">
     <div class="topbar-logo">SAGA</div>
-    <button class="search-btn" id="search-btn" onclick="openSearchScreen()" style="display:none" title="Buscar">🔍</button>
-    <div class="sync-indicator" id="sync-dot"></div>
-    <div class="topbar-avatar" id="top-avatar">?</div>
+    <div style="flex:1"></div>
+    <button class="topbar-icon-btn" id="search-btn" onclick="openSearchScreen()" style="display:none" title="Buscar">🔍</button>
+    <div class="sync-indicator" id="sync-dot" style="margin:0 6px"></div>
+    <button class="topbar-icon-btn" id="top-avatar-btn" onclick="toggleUserMenu()" style="display:none;background:rgba(255,255,255,.15);font-size:14px;font-weight:700;color:#fff;" title="Mi cuenta">?</button>
+  </div>
+
+  <!-- MENÚ DE USUARIO -->
+  <div id="user-menu-overlay" onclick="closeUserMenu()"></div>
+  <div id="user-menu">
+    <div class="user-menu-header">
+      <div class="user-menu-name" id="um-name">—</div>
+      <div class="user-menu-role" id="um-role">—</div>
+    </div>
+    <div class="user-menu-item" onclick="goToProfile()">
+      <span class="user-menu-item-icon">👤</span>
+      <span class="user-menu-item-label">Mi perfil</span>
+    </div>
+    <div class="user-menu-item user-menu-logout" onclick="confirmLogout()">
+      <span class="user-menu-item-icon">🚪</span>
+      <span class="user-menu-item-label">Cerrar sesión</span>
+    </div>
   </div>
 
   <!-- PANTALLA DE BÚSQUEDA COMPLETA -->
   <div id="search-screen">
     <div class="search-screen-top">
-      <button class="search-screen-back" onclick="closeSearchScreen()">←</button>
-      <input class="search-screen-input" id="search-screen-input" 
-        placeholder="Buscar tickets, activos, códigos..." 
-        oninput="doMobileSearch(this.value)" autocomplete="off" autocorrect="off">
+      <button class="search-back-btn" onclick="closeSearchScreen()">←</button>
+      <div class="search-input-wrap">
+        <span class="search-input-icon">🔍</span>
+        <input class="search-main-input" id="search-screen-input"
+          placeholder="Buscar tickets, activos, códigos..."
+          oninput="doMobileSearch(this.value)"
+          autocomplete="off" autocorrect="off" autocapitalize="off">
+        <button class="search-clear-btn" id="search-clear-btn" onclick="clearSearch()">✕</button>
+      </div>
     </div>
     <div class="search-screen-body" id="search-screen-body">
-      <div class="sr-hint">
-        <p>Busca por código (TKT-0001, ACT-0001),<br>por nombre del equipo,<br>por título del ticket o por responsable.</p>
+      <div class="sr-initial">
+        <div class="sr-initial-title">Puedes buscar por:</div>
+        <div class="sr-suggestion"><span class="sr-sug-icon">🎫</span><span class="sr-sug-text">Código de ticket — ej: TKT-0001</span></div>
+        <div class="sr-suggestion"><span class="sr-sug-icon">📦</span><span class="sr-sug-text">Código de activo — ej: ACT-0015</span></div>
+        <div class="sr-suggestion"><span class="sr-sug-icon">🔤</span><span class="sr-sug-text">Nombre del equipo o título del ticket</span></div>
+        <div class="sr-suggestion"><span class="sr-sug-icon">👤</span><span class="sr-sug-text">Nombre del responsable</span></div>
+        <div class="sr-suggestion"><span class="sr-sug-icon">📍</span><span class="sr-sug-text">Ubicación del activo</span></div>
       </div>
     </div>
   </div>
@@ -728,7 +756,10 @@ function doLogin(){
   apiPost("usuarios","update",{...usuario,ultimoAcceso:ts()});
   document.getElementById("login-screen").style.display="none";
   document.getElementById("app").classList.add("visible");
-  document.getElementById("top-avatar").textContent=initials(usuario.nombre);
+  document.getElementById("top-avatar-btn").textContent=initials(usuario.nombre);
+  document.getElementById("top-avatar-btn").style.display="flex";
+  document.getElementById("um-name").textContent=usuario.nombre;
+  document.getElementById("um-role").textContent=usuario.rol==="admin"?"Administrador":"Técnico";
   document.getElementById("search-btn").style.display="block";
   renderDashboard();
   renderTickets();
@@ -1165,20 +1196,91 @@ function renderReportes(){
 
 
 // ══════════════════════════════════════════════════════════════════
+// MENÚ DE USUARIO Y CERRAR SESIÓN
+// ══════════════════════════════════════════════════════════════════
+function toggleUserMenu(){
+  const menu = document.getElementById("user-menu");
+  const overlay = document.getElementById("user-menu-overlay");
+  const isOpen = menu.classList.contains("open");
+  if(isOpen){ closeUserMenu(); }
+  else { menu.classList.add("open"); overlay.classList.add("open"); }
+}
+
+function closeUserMenu(){
+  document.getElementById("user-menu").classList.remove("open");
+  document.getElementById("user-menu-overlay").classList.remove("open");
+}
+
+function goToProfile(){
+  closeUserMenu();
+  showToast("Edita tu perfil desde la versión web de SAGA","");
+}
+
+function confirmLogout(){
+  closeUserMenu();
+  // Diálogo de confirmación
+  if(confirm("¿Seguro que deseas cerrar sesión?")){
+    doLogout();
+  }
+}
+
+function doLogout(){
+  // Registrar en auditoría
+  if(session){
+    apiPost("auditoria","insert",{
+      ts:ts(), usuario:session.username, nombre:session.nombre,
+      rol:session.rol, accion:"LOGOUT", tipo:"Sistema",
+      codigo:"MOBILE", detalle:"Cierre de sesión desde app móvil"
+    });
+  }
+  // Limpiar sesión
+  session = null;
+  // Ocultar botones del topbar
+  document.getElementById("top-avatar-btn").style.display="none";
+  document.getElementById("search-btn").style.display="none";
+  // Mostrar login
+  document.getElementById("app").classList.remove("visible");
+  document.getElementById("login-screen").style.display="flex";
+  // Limpiar campos
+  document.getElementById("l-user").value="";
+  document.getElementById("l-pass").value="";
+  document.getElementById("login-err").style.display="none";
+  // Volver al dashboard para la próxima sesión
+  goScreen("dashboard", document.getElementById("nav-dashboard"));
+  showToast("Sesión cerrada","");
+}
+
+// ══════════════════════════════════════════════════════════════════
 // BUSCADOR GLOBAL MÓVIL — PANTALLA COMPLETA
 // ══════════════════════════════════════════════════════════════════
 function openSearchScreen(){
   const screen = document.getElementById("search-screen");
   const input = document.getElementById("search-screen-input");
   screen.classList.add("open");
-  // Reset
   input.value = "";
+  document.getElementById("search-clear-btn").style.display="none";
+  resetSearchBody();
+  setTimeout(()=>input.focus(), 150);
+}
+
+function resetSearchBody(){
   document.getElementById("search-screen-body").innerHTML = `
-    <div class="sr-hint">
-      <p>Busca por código (TKT-0001, ACT-0001),<br>por nombre del equipo,<br>por título del ticket o por responsable.</p>
+    <div class="sr-initial">
+      <div class="sr-initial-title">Puedes buscar por:</div>
+      <div class="sr-suggestion"><span class="sr-sug-icon">🎫</span><span class="sr-sug-text">Código de ticket — ej: TKT-0001</span></div>
+      <div class="sr-suggestion"><span class="sr-sug-icon">📦</span><span class="sr-sug-text">Código de activo — ej: ACT-0015</span></div>
+      <div class="sr-suggestion"><span class="sr-sug-icon">🔤</span><span class="sr-sug-text">Nombre del equipo o título del ticket</span></div>
+      <div class="sr-suggestion"><span class="sr-sug-icon">👤</span><span class="sr-sug-text">Nombre del responsable</span></div>
+      <div class="sr-suggestion"><span class="sr-sug-icon">📍</span><span class="sr-sug-text">Ubicación del activo</span></div>
     </div>`;
-  // Focus con delay para que el teclado aparezca
-  setTimeout(()=>input.focus(), 100);
+}
+
+function clearSearch(){
+  const input = document.getElementById("search-screen-input");
+  input.value = "";
+  input.focus();
+  document.getElementById("search-clear-btn").style.display="none";
+  resetSearchBody();
 }
 
 function closeSearchScreen(){
@@ -1188,12 +1290,14 @@ function closeSearchScreen(){
 
 function doMobileSearch(q){
   const body = document.getElementById("search-screen-body");
-  q = q.trim();
+  const clearBtn = document.getElementById("search-clear-btn");
+  clearBtn.style.display = q.length > 0 ? "block" : "none";
 
-  if(!q || q.length < 2){
-    body.innerHTML = `<div class="sr-hint"><p>Busca por código, nombre, título o responsable.</p></div>`;
+  if(!q || q.trim().length < 2){
+    if(!q) resetSearchBody();
     return;
   }
+  q = q.trim();
 
   const ql = q.toLowerCase();
 
@@ -1222,8 +1326,9 @@ function doMobileSearch(q){
   if(!matchTickets.length && !matchActivos.length){
     body.innerHTML = `
       <div class="sr-empty-state">
-        <div class="empty-icon">🔍</div>
-        <p>Sin resultados para<br><strong>"${q}"</strong></p>
+        <div class="sr-empty-icon">🔍</div>
+        <div class="sr-empty-title">Sin resultados</div>
+        <div class="sr-empty-sub">No se encontró nada para<br><strong>"${q}"</strong></div>
       </div>`;
     return;
   }
@@ -1329,7 +1434,10 @@ async function saveForcePass(){
   // Mostrar la app
   document.getElementById("force-pass-screen").style.display="none";
   document.getElementById("app").classList.add("visible");
-  document.getElementById("top-avatar").textContent=initials(session.nombre);
+  document.getElementById("top-avatar-btn").textContent=initials(session.nombre);
+  document.getElementById("top-avatar-btn").style.display="flex";
+  document.getElementById("um-name").textContent=session.nombre;
+  document.getElementById("um-role").textContent=session.rol==="admin"?"Administrador":"Técnico";
   document.getElementById("search-btn").style.display="block";
   renderDashboard();renderTickets();renderActivos();renderReportes();updateBadge();
   showToast("¡Contraseña creada exitosamente! ✓","success");
@@ -1400,6 +1508,7 @@ document.addEventListener("DOMContentLoaded",()=>{
 </script>
 </body>
 </html>
+
 
 
 
