@@ -445,6 +445,12 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
       </select>
     </div>
     <div class="form-group">
+      <label class="form-label">Responsable</label>
+      <select class="form-select" id="mt-resp">
+        <option value="Sin asignar">— Sin asignar —</option>
+      </select>
+    </div>
+    <div class="form-group">
       <label class="form-label">Tipo</label>
       <select class="form-select" id="mt-tipo">
         <option value="incidencia">Incidencia</option>
@@ -960,6 +966,12 @@ function openNuevoTicket(){
   // Poblar activos
   const sel=document.getElementById("mt-activo");
   sel.innerHTML='<option value="">— Sin activo —</option>'+activos.filter(a=>a.estado!=="eliminado").map(a=>`<option value="${a.codigo}">${a.codigo} — ${a.nombre}</option>`).join("");
+  // Poblar responsables
+  const respSel=document.getElementById("mt-resp");
+  if(respSel){
+    const usersActivos=usuarios.filter(u=>u.estado!=="inactivo");
+    respSel.innerHTML='<option value="Sin asignar">— Sin asignar —</option>'+usersActivos.map(u=>`<option value="${u.nombre}">${u.nombre} (${u.rol==="admin"?"Admin":"Técnico"})</option>`).join("");
+  }
   document.getElementById("modal-overlay").classList.add("open");
   document.getElementById("modal-ticket").classList.add("open");
 }
@@ -969,6 +981,13 @@ function openEditTicket(codigo){
   document.getElementById("modal-title").textContent="Editar ticket";
   document.getElementById("mt-id").value=codigo;
   document.getElementById("mt-titulo").value=t.titulo||"";
+  // Poblar y setear responsable
+  const respSelE=document.getElementById("mt-resp");
+  if(respSelE){
+    const usersActivosE=usuarios.filter(u=>u.estado!=="inactivo");
+    respSelE.innerHTML='<option value="Sin asignar">— Sin asignar —</option>'+usersActivosE.map(u=>`<option value="${u.nombre}">${u.nombre} (${u.rol==="admin"?"Admin":"Técnico"})</option>`).join("");
+    respSelE.value=t.resp||"Sin asignar";
+  }
   document.getElementById("mt-tipo").value=t.tipo||"incidencia";
   document.getElementById("mt-prior").value=t.prior||"importante";
   document.getElementById("mt-estado").value=t.estado||"abierto";
@@ -1349,6 +1368,7 @@ document.addEventListener("DOMContentLoaded",()=>{
 </script>
 </body>
 </html>
+
 
 
 
