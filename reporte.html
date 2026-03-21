@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#1B3A6B">
+<title>SAGA — Reportar un problema</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;background:#F0F4FB;min-height:100vh;display:flex;flex-direction:column;}
+:root{
+  --navy:#1B3A6B;--navy-l:#E8F0FB;--navy-d:#0D1F3C;
+  --white:#FFFFFF;--bg:#F0F4FB;
+  --text:#1A1A1A;--text2:#444444;--text3:#888888;
+  --border:#E0E0E0;--border2:#CCCCCC;
+  --gold:#B8960C;--gold-l:#FDF8E1;
+  --green:#085041;--green-l:#EAF3DE;--green-m:#1D9E75;
+  --red:#791F1F;--red-l:#FCEBEB;--red-m:#D85A30;
+  --amber:#633806;--amber-l:#FAEEDA;--amber-m:#BA7517;
+  --r-md:10px;--r-lg:14px;--r-xl:20px;
+  --shadow:0 2px 16px rgba(27,58,107,.10);
+  --shadow-lg:0 8px 32px rgba(27,58,107,.15);
+}
+
+/* ── HEADER ───────────────────────────────────────────────────── */
+.header{background:var(--navy);padding:20px 24px;display:flex;align-items:center;gap:14px;}
+.header-logo{font-size:22px;font-weight:700;color:#fff;letter-spacing:-.5px;}
+.header-divider{width:1px;height:24px;background:rgba(255,255,255,.25);}
+.header-title{font-size:14px;color:rgba(255,255,255,.75);}
+.header-badge{margin-left:auto;background:rgba(255,255,255,.12);border-radius:20px;padding:4px 12px;font-size:11px;color:rgba(255,255,255,.7);font-weight:500;}
+
+/* ── HERO ─────────────────────────────────────────────────────── */
+.hero{background:var(--navy);padding:32px 24px 48px;text-align:center;}
+.hero-icon{font-size:48px;margin-bottom:16px;}
+.hero-title{font-size:26px;font-weight:700;color:#fff;margin-bottom:8px;line-height:1.2;}
+.hero-sub{font-size:14px;color:rgba(255,255,255,.65);line-height:1.6;max-width:480px;margin:0 auto;}
+
+/* ── CONTENEDOR ───────────────────────────────────────────────── */
+.container{max-width:600px;margin:-24px auto 0;padding:0 20px 48px;position:relative;z-index:1;flex:1;}
+
+/* ── TARJETA DEL FORMULARIO ───────────────────────────────────── */
+.form-card{background:#fff;border-radius:var(--r-xl);box-shadow:var(--shadow-lg);overflow:hidden;}
+.form-card-header{background:var(--navy-l);padding:18px 24px;border-bottom:1px solid var(--border);}
+.form-card-title{font-size:16px;font-weight:700;color:var(--navy-d);}
+.form-card-sub{font-size:12px;color:var(--text3);margin-top:3px;}
+.form-body{padding:24px;}
+
+/* ── CAMPOS ───────────────────────────────────────────────────── */
+.form-group{margin-bottom:18px;}
+.form-label{display:block;font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;}
+.form-label span{color:var(--red-m);margin-left:2px;}
+.form-input,.form-select,.form-textarea{
+  width:100%;padding:12px 14px;border-radius:var(--r-md);
+  border:1.5px solid var(--border2);background:#fff;
+  font-size:14px;font-family:inherit;color:var(--text);
+  outline:none;transition:border-color .15s,box-shadow .15s;
+}
+.form-input:focus,.form-select:focus,.form-textarea:focus{
+  border-color:var(--navy);
+  box-shadow:0 0 0 3px rgba(27,58,107,.08);
+}
+.form-textarea{resize:vertical;min-height:110px;line-height:1.6;}
+.form-select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23888' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;-webkit-appearance:none;appearance:none;}
+.form-row-2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+@media(max-width:480px){.form-row-2{grid-template-columns:1fr;}}
+
+/* Prioridad visual */
+.priority-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+.priority-opt{padding:12px 8px;border-radius:var(--r-md);border:2px solid var(--border);background:#fff;text-align:center;cursor:pointer;transition:all .15s;user-select:none;}
+.priority-opt:hover{border-color:var(--navy-l);}
+.priority-opt.selected-normal{border-color:var(--green-m);background:var(--green-l);}
+.priority-opt.selected-importante{border-color:var(--amber-m);background:var(--amber-l);}
+.priority-opt.selected-urgente{border-color:var(--red-m);background:var(--red-l);}
+.priority-icon{font-size:22px;margin-bottom:4px;}
+.priority-label{font-size:12px;font-weight:600;color:var(--text2);}
+.priority-opt.selected-normal .priority-label{color:var(--green);}
+.priority-opt.selected-importante .priority-label{color:var(--amber);}
+.priority-opt.selected-urgente .priority-label{color:var(--red);}
+input[type="radio"].priority-radio{display:none;}
+
+/* ── BOTÓN ENVIAR ─────────────────────────────────────────────── */
+.btn-submit{
+  width:100%;padding:15px;border-radius:var(--r-md);
+  background:var(--navy);border:none;color:#fff;
+  font-size:15px;font-weight:700;cursor:pointer;
+  transition:opacity .15s,transform .1s;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  margin-top:4px;
+}
+.btn-submit:hover{opacity:.92;}
+.btn-submit:active{transform:scale(.98);}
+.btn-submit:disabled{opacity:.5;cursor:not-allowed;}
+.btn-spinner{width:18px;height:18px;border:2.5px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;display:none;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* ── MENSAJES ─────────────────────────────────────────────────── */
+.msg-error{background:var(--red-l);border:1px solid var(--red-m);border-radius:var(--r-md);padding:12px 14px;font-size:13px;color:var(--red);margin-bottom:16px;display:none;}
+.msg-error.show{display:block;}
+
+/* ── PANTALLA DE ÉXITO ────────────────────────────────────────── */
+#success-screen{display:none;padding:48px 24px;text-align:center;}
+#success-screen.show{display:block;}
+.success-icon{font-size:64px;margin-bottom:20px;animation:popIn .4s cubic-bezier(.17,.67,.3,1.3);}
+@keyframes popIn{from{transform:scale(0);opacity:0;}to{transform:scale(1);opacity:1;}}
+.success-title{font-size:22px;font-weight:700;color:var(--navy);margin-bottom:10px;}
+.success-sub{font-size:14px;color:var(--text3);line-height:1.7;margin-bottom:24px;}
+.success-code{display:inline-block;background:var(--navy);color:#fff;font-family:monospace;font-size:18px;font-weight:700;padding:10px 24px;border-radius:var(--r-md);margin-bottom:24px;letter-spacing:1px;}
+.success-info{background:var(--navy-l);border-radius:var(--r-lg);padding:16px 20px;text-align:left;margin-bottom:20px;}
+.success-info-item{display:flex;gap:8px;padding:6px 0;border-bottom:1px solid rgba(27,58,107,.1);font-size:13px;}
+.success-info-item:last-child{border-bottom:none;}
+.success-info-label{color:var(--text3);width:100px;flex-shrink:0;}
+.success-info-value{color:var(--navy-d);font-weight:500;}
+.btn-nuevo{padding:12px 28px;border-radius:var(--r-md);background:#fff;border:2px solid var(--navy);color:var(--navy);font-size:14px;font-weight:600;cursor:pointer;transition:all .15s;}
+.btn-nuevo:hover{background:var(--navy);color:#fff;}
+
+/* ── FOOTER ───────────────────────────────────────────────────── */
+.footer{background:#fff;border-top:1px solid var(--border);padding:16px 24px;text-align:center;}
+.footer p{font-size:12px;color:var(--text3);}
+.footer strong{color:var(--navy);}
+
+/* ── CARGANDO ─────────────────────────────────────────────────── */
+.connecting-badge{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--green);font-weight:600;margin-bottom:16px;}
+.conn-dot{width:7px;height:7px;border-radius:50%;background:var(--green-m);animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.3;}}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-logo">SAGA</div>
+  <div class="header-divider"></div>
+  <div class="header-title">Portal de Reportes</div>
+  <div class="header-badge">Centro Educativo PCA</div>
+</div>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-icon">🛠️</div>
+  <div class="hero-title">¿Tienes un problema técnico?</div>
+  <div class="hero-sub">Reporta aquí tu incidencia o solicitud. El equipo de soporte recibirá una notificación inmediata y atenderá tu caso lo antes posible.</div>
+</div>
+
+<!-- CONTAINER -->
+<div class="container">
+
+  <!-- FORMULARIO -->
+  <div class="form-card" id="form-card">
+    <div class="form-card-header">
+      <div class="form-card-title">Nuevo reporte de soporte</div>
+      <div class="form-card-sub">Todos los campos marcados con * son obligatorios</div>
+    </div>
+    <div class="form-body">
+
+      <div class="connecting-badge"><span class="conn-dot"></span> Conectado al sistema SAGA</div>
+
+      <div class="msg-error" id="msg-error"></div>
+
+      <!-- Nombre y correo -->
+      <div class="form-row-2">
+        <div class="form-group">
+          <label class="form-label">Tu nombre <span>*</span></label>
+          <input class="form-input" id="f-nombre" type="text" placeholder="Ej: María González" autocomplete="name">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Correo electrónico <span>*</span></label>
+          <input class="form-input" id="f-correo" type="email" placeholder="tu@correo.com" autocomplete="email">
+        </div>
+      </div>
+
+      <!-- Departamento y ubicación -->
+      <div class="form-row-2">
+        <div class="form-group">
+          <label class="form-label">Departamento / Área <span>*</span></label>
+          <input class="form-input" id="f-depto" type="text" placeholder="Ej: Primaria, Administración...">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Ubicación del problema</label>
+          <input class="form-input" id="f-ubicacion" type="text" placeholder="Ej: Aula 3B, Lab Robótica...">
+        </div>
+      </div>
+
+      <!-- Tipo de solicitud -->
+      <div class="form-group">
+        <label class="form-label">Tipo de solicitud <span>*</span></label>
+        <select class="form-select" id="f-tipo">
+          <option value="">— Selecciona el tipo —</option>
+          <option value="incidencia">🔴 Incidencia — Algo dejó de funcionar</option>
+          <option value="mantenimiento">🔧 Mantenimiento — Revisión o limpieza de equipo</option>
+          <option value="solicitud">📋 Solicitud — Necesito algo nuevo o un cambio</option>
+          <option value="tarea">✅ Tarea — Instalación, configuración o ajuste</option>
+        </select>
+      </div>
+
+      <!-- Título del problema -->
+      <div class="form-group">
+        <label class="form-label">Título del problema <span>*</span></label>
+        <input class="form-input" id="f-titulo" type="text" placeholder="Ej: El proyector del aula 3B no enciende">
+      </div>
+
+      <!-- Descripción -->
+      <div class="form-group">
+        <label class="form-label">Descripción detallada <span>*</span></label>
+        <textarea class="form-textarea" id="f-desc" placeholder="Describe con detalle el problema:&#10;• ¿Qué estabas haciendo cuando ocurrió?&#10;• ¿Cuándo comenzó el problema?&#10;• ¿Qué equipos están afectados?&#10;• ¿Has intentado algo para solucionarlo?"></textarea>
+      </div>
+
+      <!-- Prioridad -->
+      <div class="form-group">
+        <label class="form-label">Prioridad <span>*</span></label>
+        <div class="priority-grid">
+          <div class="priority-opt selected-normal" id="opt-normal" onclick="selectPriority('normal')">
+            <div class="priority-icon">🟢</div>
+            <div class="priority-label">Normal</div>
+          </div>
+          <div class="priority-opt" id="opt-importante" onclick="selectPriority('importante')">
+            <div class="priority-icon">🟡</div>
+            <div class="priority-label">Importante</div>
+          </div>
+          <div class="priority-opt" id="opt-urgente" onclick="selectPriority('urgente')">
+            <div class="priority-icon">🔴</div>
+            <div class="priority-label">Urgente</div>
+          </div>
+        </div>
+        <input type="hidden" id="f-prior" value="normal">
+      </div>
+
+      <!-- Botón enviar -->
+      <button class="btn-submit" id="btn-submit" onclick="enviarReporte()">
+        <span id="btn-text">📤 Enviar reporte al equipo técnico</span>
+        <div class="btn-spinner" id="btn-spinner"></div>
+      </button>
+
+    </div>
+  </div>
+
+  <!-- PANTALLA DE ÉXITO -->
+  <div id="success-screen">
+    <div class="success-icon">✅</div>
+    <div class="success-title">¡Reporte enviado exitosamente!</div>
+    <div class="success-sub">Tu reporte ha sido registrado en el sistema SAGA. El equipo técnico ha recibido una notificación y atenderá tu solicitud lo antes posible.</div>
+    <div class="success-code" id="success-code">TKT-0000</div>
+    <div class="success-info" id="success-info"></div>
+    <button class="btn-nuevo" onclick="nuevoReporte()">+ Reportar otro problema</button>
+  </div>
+
+</div>
+
+<!-- FOOTER -->
+<div class="footer">
+  <p>Sistema gestionado por <strong>SAGA</strong> · Desarrollado por <strong>RYEJ</strong> · Centro Educativo PCA</p>
+</div>
+
+<script>
+// ── CONFIG ────────────────────────────────────────────────────────
+const API = "https://script.google.com/macros/s/AKfycbxl0l0Y45cy0bbyi7xCVb5e-i4gh2aZfJQLnmFwCiLru002-hTAJ9ljWvmDh5WfiZShxQ/exec";
+
+let prioridad = "normal";
+let cntTickets = 0;
+
+// ── FUNCIONES ─────────────────────────────────────────────────────
+function selectPriority(p){
+  prioridad = p;
+  ["normal","importante","urgente"].forEach(opt=>{
+    const el = document.getElementById("opt-"+opt);
+    el.className = "priority-opt";
+    if(opt === p) el.className += " selected-"+opt;
+  });
+  document.getElementById("f-prior").value = p;
+}
+
+function genCode(n){
+  return "TKT-" + String(n+1).padStart(4,"0");
+}
+
+function ts(){
+  return new Date().toLocaleString("es-PA",{dateStyle:"short",timeStyle:"short"});
+}
+
+function showError(msg){
+  const el = document.getElementById("msg-error");
+  el.textContent = msg;
+  el.classList.add("show");
+  el.scrollIntoView({behavior:"smooth",block:"center"});
+}
+
+function hideError(){
+  document.getElementById("msg-error").classList.remove("show");
+}
+
+async function getCantTickets(){
+  try{
+    const r = await fetch(API+"?sheet=tickets",{mode:"cors"});
+    const d = await r.json();
+    return Array.isArray(d) ? d.length : 0;
+  }catch(e){ return 0; }
+}
+
+async function enviarReporte(){
+  hideError();
+
+  // Validaciones
+  const nombre = document.getElementById("f-nombre").value.trim();
+  const correo = document.getElementById("f-correo").value.trim();
+  const depto  = document.getElementById("f-depto").value.trim();
+  const tipo   = document.getElementById("f-tipo").value;
+  const titulo = document.getElementById("f-titulo").value.trim();
+  const desc   = document.getElementById("f-desc").value.trim();
+  const prior  = prioridad;
+
+  if(!nombre){ showError("Por favor escribe tu nombre completo."); return; }
+  if(!correo || !correo.includes("@")){ showError("Por favor escribe un correo electrónico válido."); return; }
+  if(!depto){ showError("Por favor indica tu departamento o área."); return; }
+  if(!tipo){ showError("Por favor selecciona el tipo de solicitud."); return; }
+  if(!titulo){ showError("Por favor escribe un título para el problema."); return; }
+  if(desc.length < 20){ showError("Por favor describe el problema con más detalle (mínimo 20 caracteres)."); return; }
+
+  // Mostrar spinner
+  const btn = document.getElementById("btn-submit");
+  const spinner = document.getElementById("btn-spinner");
+  const btnText = document.getElementById("btn-text");
+  btn.disabled = true;
+  spinner.style.display = "block";
+  btnText.textContent = "Enviando reporte...";
+
+  try{
+    // Obtener cantidad de tickets para generar código
+    const cnt = await getCantTickets();
+    const codigo = genCode(cnt);
+    const ubicacion = document.getElementById("f-ubicacion").value.trim() || "—";
+
+    // Construir ticket
+    const ticket = {
+      id: codigo,
+      codigo: codigo,
+      titulo: titulo,
+      activoId: "",
+      activoNombre: "—",
+      resp: "Sin asignar",
+      tipo: tipo,
+      prior: prior,
+      estado: "abierto",
+      avance: 0,
+      dead: "—",
+      proy: depto,
+      desc: `${desc}\n\n--- Reportado por: ${nombre} (${correo}) | Ubicación: ${ubicacion} | Departamento: ${depto} ---`,
+      historial: JSON.stringify([{
+        tipo:"Creación",
+        desc:`Reportado por ${nombre} (${correo}) desde el Portal de Reportes. Departamento: ${depto}. Ubicación: ${ubicacion}.`,
+        fecha: ts(),
+        usuario: nombre,
+        color:"green"
+      }]),
+      fechaCreacion: ts(),
+      reportadoPor: nombre,
+      correoReportador: correo
+    };
+
+    // Insertar ticket en Sheets
+    await fetch(API, {
+      method:"POST",
+      mode:"no-cors",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({sheet:"tickets", action:"insert", payload:ticket})
+    });
+
+    // Registrar en auditoría
+    await fetch(API, {
+      method:"POST",
+      mode:"no-cors",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({sheet:"auditoria", action:"insert", payload:{
+        ts: ts(),
+        usuario: nombre,
+        nombre: nombre,
+        rol: "reportador",
+        accion: "CREAR",
+        tipo: "Ticket",
+        codigo: codigo,
+        detalle: `Reporte externo desde Portal Público. Correo: ${correo}. Depto: ${depto}.`
+      }})
+    });
+
+    // Mostrar éxito
+    document.getElementById("form-card").style.display = "none";
+    const successScreen = document.getElementById("success-screen");
+    successScreen.classList.add("show");
+    document.getElementById("success-code").textContent = codigo;
+    document.getElementById("success-info").innerHTML = `
+      <div class="success-info-item"><span class="success-info-label">Reportado por</span><span class="success-info-value">${nombre}</span></div>
+      <div class="success-info-item"><span class="success-info-label">Correo</span><span class="success-info-value">${correo}</span></div>
+      <div class="success-info-item"><span class="success-info-label">Tipo</span><span class="success-info-value">${tipo.charAt(0).toUpperCase()+tipo.slice(1)}</span></div>
+      <div class="success-info-item"><span class="success-info-label">Prioridad</span><span class="success-info-value">${prior.charAt(0).toUpperCase()+prior.slice(1)}</span></div>
+      <div class="success-info-item"><span class="success-info-label">Área</span><span class="success-info-value">${depto}</span></div>
+      <div class="success-info-item"><span class="success-info-label">Estado</span><span class="success-info-value">✅ Enviado al equipo técnico</span></div>
+    `;
+    window.scrollTo({top:0,behavior:"smooth"});
+
+  }catch(e){
+    btn.disabled = false;
+    spinner.style.display = "none";
+    btnText.textContent = "📤 Enviar reporte al equipo técnico";
+    showError("Hubo un problema al enviar el reporte. Verifica tu conexión e intenta de nuevo.");
+  }
+}
+
+function nuevoReporte(){
+  document.getElementById("success-screen").classList.remove("show");
+  document.getElementById("form-card").style.display = "block";
+  document.getElementById("f-nombre").value = "";
+  document.getElementById("f-correo").value = "";
+  document.getElementById("f-depto").value = "";
+  document.getElementById("f-ubicacion").value = "";
+  document.getElementById("f-tipo").value = "";
+  document.getElementById("f-titulo").value = "";
+  document.getElementById("f-desc").value = "";
+  selectPriority("normal");
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+</script>
+</body>
+</html>
