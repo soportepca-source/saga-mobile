@@ -290,14 +290,24 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
   <!-- TOP BAR -->
   <div class="topbar">
     <div class="topbar-logo">SAGA</div>
-    <div class="search-bar-wrap" id="search-bar-wrap" style="display:none">
-      <span class="search-bar-icon">🔍</span>
-      <input class="search-bar-input" id="mobile-search" placeholder="Buscar..." 
-        oninput="mobileSearch(this.value)" onblur="setTimeout(()=>closeMobileSearch(),200)">
-      <div class="search-results-mobile" id="mobile-search-results"></div>
-    </div>
+    <button class="search-btn" id="search-btn" onclick="openSearchScreen()" style="display:none" title="Buscar">🔍</button>
     <div class="sync-indicator" id="sync-dot"></div>
     <div class="topbar-avatar" id="top-avatar">?</div>
+  </div>
+
+  <!-- PANTALLA DE BÚSQUEDA COMPLETA -->
+  <div id="search-screen">
+    <div class="search-screen-top">
+      <button class="search-screen-back" onclick="closeSearchScreen()">←</button>
+      <input class="search-screen-input" id="search-screen-input" 
+        placeholder="Buscar tickets, activos, códigos..." 
+        oninput="doMobileSearch(this.value)" autocomplete="off" autocorrect="off">
+    </div>
+    <div class="search-screen-body" id="search-screen-body">
+      <div class="sr-hint">
+        <p>Busca por código (TKT-0001, ACT-0001),<br>por nombre del equipo,<br>por título del ticket o por responsable.</p>
+      </div>
+    </div>
   </div>
 
   <!-- CONTENT -->
@@ -719,7 +729,7 @@ function doLogin(){
   document.getElementById("login-screen").style.display="none";
   document.getElementById("app").classList.add("visible");
   document.getElementById("top-avatar").textContent=initials(usuario.nombre);
-  document.getElementById("search-bar-wrap").style.display="flex";
+  document.getElementById("search-btn").style.display="block";
   renderDashboard();
   renderTickets();
   renderActivos();
@@ -1155,83 +1165,119 @@ function renderReportes(){
 
 
 // ══════════════════════════════════════════════════════════════════
-// BUSCADOR GLOBAL MÓVIL
+// BUSCADOR GLOBAL MÓVIL — PANTALLA COMPLETA
 // ══════════════════════════════════════════════════════════════════
-function mobileSearch(q){
-  const res=document.getElementById("mobile-search-results");
-  q=q.trim();
-  if(!q||q.length<2){res.classList.remove("open");return;}
+function openSearchScreen(){
+  const screen = document.getElementById("search-screen");
+  const input = document.getElementById("search-screen-input");
+  screen.classList.add("open");
+  // Reset
+  input.value = "";
+  document.getElementById("search-screen-body").innerHTML = `
+    <div class="sr-hint">
+      <p>Busca por código (TKT-0001, ACT-0001),<br>por nombre del equipo,<br>por título del ticket o por responsable.</p>
+    </div>`;
+  // Focus con delay para que el teclado aparezca
+  setTimeout(()=>input.focus(), 100);
+}
 
-  const matchTickets=tickets.filter(t=>
-    t.codigo?.toLowerCase().includes(q.toLowerCase())||
-    t.titulo?.toLowerCase().includes(q.toLowerCase())||
-    t.resp?.toLowerCase().includes(q.toLowerCase())||
-    t.activoNombre?.toLowerCase().includes(q.toLowerCase())
-  ).slice(0,4);
+function closeSearchScreen(){
+  document.getElementById("search-screen").classList.remove("open");
+  document.getElementById("search-screen-input").blur();
+}
 
-  const matchActivos=activos.filter(a=>
-    a.codigo?.toLowerCase().includes(q.toLowerCase())||
-    a.nombre?.toLowerCase().includes(q.toLowerCase())||
-    a.serial?.toLowerCase().includes(q.toLowerCase())||
-    a.asignado?.toLowerCase().includes(q.toLowerCase())
-  ).slice(0,4);
+function doMobileSearch(q){
+  const body = document.getElementById("search-screen-body");
+  q = q.trim();
 
-  if(!matchTickets.length&&!matchActivos.length){
-    res.innerHTML=`<div class="sr-empty-m">Sin resultados para "${q}"</div>`;
-    res.classList.add("open");return;
+  if(!q || q.length < 2){
+    body.innerHTML = `<div class="sr-hint"><p>Busca por código, nombre, título o responsable.</p></div>`;
+    return;
   }
 
-  let html="";
+  const ql = q.toLowerCase();
+
+  // Buscar en tickets
+  const matchTickets = tickets.filter(t =>
+    t.estado !== "eliminado" && (
+      t.codigo?.toLowerCase().includes(ql) ||
+      t.titulo?.toLowerCase().includes(ql) ||
+      t.resp?.toLowerCase().includes(ql) ||
+      t.activoNombre?.toLowerCase().includes(ql) ||
+      t.desc?.toLowerCase().includes(ql)
+    )
+  ).slice(0, 6);
+
+  // Buscar en activos
+  const matchActivos = activos.filter(a =>
+    a.estado !== "eliminado" && (
+      a.codigo?.toLowerCase().includes(ql) ||
+      a.nombre?.toLowerCase().includes(ql) ||
+      a.serial?.toLowerCase().includes(ql) ||
+      a.asignado?.toLowerCase().includes(ql) ||
+      a.ubicacion?.toLowerCase().includes(ql)
+    )
+  ).slice(0, 6);
+
+  if(!matchTickets.length && !matchActivos.length){
+    body.innerHTML = `
+      <div class="sr-empty-state">
+        <div class="empty-icon">🔍</div>
+        <p>Sin resultados para<br><strong>"${q}"</strong></p>
+      </div>`;
+    return;
+  }
+
+  let html = "";
+
   if(matchTickets.length){
-    html+=`<div class="sr-group-m">🎫 Tickets</div>`;
-    html+=matchTickets.map(t=>`
-      <div class="sr-item-m" onclick="searchGoTicketM('${t.codigo}')">
-        <span class="sr-code-m">${t.codigo}</span>
-        <span class="sr-name-m">${t.titulo}</span>
-        <span class="badge b-${t.estado}" style="font-size:9px">${t.estado}</span>
+    html += `<div class="sr-section-title">🎫 Tickets (${matchTickets.length})</div>`;
+    html += matchTickets.map(t => `
+      <div class="sr-result-item" onclick="searchSelectTicket('${t.codigo}')">
+        <div class="sr-result-icon">🎫</div>
+        <div class="sr-result-main">
+          <div class="sr-result-title">${t.titulo}</div>
+          <div class="sr-result-sub">${t.codigo} · ${t.resp || "—"} · ${t.dead && t.dead !== "—" ? "📅 "+t.dead : ""}</div>
+        </div>
+        <div class="sr-result-badge">
+          <span class="badge b-${t.estado}">${t.estado}</span>
+        </div>
       </div>`).join("");
   }
+
   if(matchActivos.length){
-    html+=`<div class="sr-group-m">📦 Activos</div>`;
-    html+=matchActivos.map(a=>`
-      <div class="sr-item-m" onclick="searchGoActivoM('${a.codigo}')">
-        <span class="sr-code-m">${a.codigo}</span>
-        <span class="sr-name-m">${a.nombre}</span>
-        <span class="badge b-${a.estado}" style="font-size:9px">${a.estado}</span>
+    html += `<div class="sr-section-title">📦 Activos (${matchActivos.length})</div>`;
+    html += matchActivos.map(a => `
+      <div class="sr-result-item" onclick="searchSelectActivo('${a.codigo}')">
+        <div class="sr-result-icon">${TIPO_ICON[a.tipo]||"📦"}</div>
+        <div class="sr-result-main">
+          <div class="sr-result-title">${a.nombre}</div>
+          <div class="sr-result-sub">${a.codigo} · ${a.ubicacion || "—"} · ${a.asignado || "—"}</div>
+        </div>
+        <div class="sr-result-badge">
+          <span class="badge b-${a.estado}">${a.estado}</span>
+        </div>
       </div>`).join("");
   }
-  res.innerHTML=html;
-  res.classList.add("open");
+
+  body.innerHTML = html;
 }
 
-function closeMobileSearch(){
-  document.getElementById("mobile-search-results").classList.remove("open");
-  document.getElementById("mobile-search").value="";
-}
-
-function searchGoTicketM(codigo){
-  closeMobileSearch();
-  goScreen("tickets",document.getElementById("nav-tickets"));
-  filtroTkt="todos";
+function searchSelectTicket(codigo){
+  closeSearchScreen();
+  goScreen("tickets", document.getElementById("nav-tickets"));
+  filtroTkt = "todos";
   document.querySelectorAll("#tkt-filters .filter-btn").forEach(b=>b.classList.remove("active"));
-  document.querySelector("#tkt-filters .filter-btn")?.classList.add("on");
+  document.querySelector("#tkt-filters .filter-btn")?.classList.add("active");
   renderTickets();
-  setTimeout(()=>{
-    const cards=document.querySelectorAll("#tickets-list .tkt-card");
-    cards.forEach(card=>{
-      if(card.innerHTML.includes(codigo)){
-        card.style.background="#E8F0FB";
-        card.scrollIntoView({behavior:"smooth",block:"center"});
-        setTimeout(()=>card.style.background="",2500);
-      }
-    });
-  },200);
+  // Abrir detalle directamente
+  setTimeout(()=>openTicketSheet(codigo), 300);
 }
 
-function searchGoActivoM(codigo){
-  closeMobileSearch();
-  goScreen("inventario",document.getElementById("nav-inventario"));
-  setTimeout(()=>openActivoDetalle(codigo),200);
+function searchSelectActivo(codigo){
+  closeSearchScreen();
+  goScreen("inventario", document.getElementById("nav-inventario"));
+  setTimeout(()=>openActivoDetalle(codigo), 300);
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -1284,7 +1330,7 @@ async function saveForcePass(){
   document.getElementById("force-pass-screen").style.display="none";
   document.getElementById("app").classList.add("visible");
   document.getElementById("top-avatar").textContent=initials(session.nombre);
-  document.getElementById("search-bar-wrap").style.display="flex";
+  document.getElementById("search-btn").style.display="block";
   renderDashboard();renderTickets();renderActivos();renderReportes();updateBadge();
   showToast("¡Contraseña creada exitosamente! ✓","success");
   apiPost("usuarios","update",{...usuario,ultimoAcceso:ts()});
@@ -1354,6 +1400,7 @@ document.addEventListener("DOMContentLoaded",()=>{
 </script>
 </body>
 </html>
+
 
 
 
