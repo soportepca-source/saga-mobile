@@ -528,7 +528,7 @@ let filtroTkt = "todos", filtroAct = "todos";
 
 // ── UTILS ────────────────────────────────────────────────────────
 function ts(){return new Date().toLocaleString("es-PA",{dateStyle:"short",timeStyle:"short"});}
-function hashPass(p){let h=5381;for(let i=0;i<p.length;i++){h=((h<<5)+h)^p.charCodeAt(i);h=h&h;}return"H"+Math.abs(h).toString(36);}
+function hashPass(p){let h=0;for(let i=0;i<p.length;i++){h=((h<<5)-h)+p.charCodeAt(i);h|=0;}return 'H'+Math.abs(h).toString(16);}
 function initials(n){if(!n)return"?";const p=n.trim().split(" ");return(p[0][0]+(p[1]?p[1][0]:"")).toUpperCase();}
 function togglePass(id,btn){const el=document.getElementById(id);el.type=el.type==="password"?"text":"password";btn.textContent=el.type==="password"?"👁":"🙈";}
 function parseHist(v){if(Array.isArray(v))return v;if(typeof v==="string"&&v.startsWith("["))try{return JSON.parse(v);}catch(e){}return[];}
@@ -1175,5 +1175,6 @@ document.addEventListener("DOMContentLoaded",()=>{
 </script>
 </body>
 </html>
+
 
 
