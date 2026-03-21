@@ -1,1 +1,1172 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#1B3A6B">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="SAGA Técnico">
+<meta name="description" content="SAGA Móvil — Gestión de tickets para técnicos de soporte">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<title>SAGA Técnico</title>
+<style>
+/* ── RESET Y BASE ─────────────────────────────────────────────── */
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;}
+:root{
+  --navy:#1B3A6B;--navy-d:#0D1F3C;--navy-l:#E8F0FB;
+  --white:#FFFFFF;--bg:#F5F7FA;--bg2:#FFFFFF;
+  --text:#1A1A1A;--text2:#444444;--text3:#888888;
+  --border:#E0E0E0;--border2:#CCCCCC;
+  --gold:#B8960C;--gold-l:#FDF8E1;
+  --green:#085041;--green-l:#EAF3DE;--green-m:#1D9E75;
+  --amber:#633806;--amber-l:#FAEEDA;--amber-m:#BA7517;
+  --red:#791F1F;--red-l:#FCEBEB;--red-m:#D85A30;
+  --blue:#0C447C;--blue-l:#E6F1FB;
+  --r-sm:8px;--r-md:12px;--r-lg:16px;--r-xl:20px;
+  --shadow:0 2px 12px rgba(0,0,0,.08);
+  --shadow-lg:0 8px 32px rgba(0,0,0,.12);
+  --nav-h:64px;--top-h:56px;
+}
+
+/* ── LOADING ──────────────────────────────────────────────────── */
+#splash{position:fixed;inset:0;background:var(--navy);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity .4s;}
+#splash.hide{opacity:0;pointer-events:none;}
+.splash-logo{font-size:48px;font-weight:700;color:#fff;letter-spacing:-1px;}
+.splash-sub{font-size:14px;color:rgba(255,255,255,.6);margin-top:8px;margin-bottom:40px;}
+.splash-spinner{width:36px;height:36px;border:3px solid rgba(255,255,255,.2);border-top-color:#B8960C;border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:translateY(0);}}
+@keyframes slideUp{from{transform:translateY(100%);}to{transform:translateY(0);}}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
+
+/* ── LOGIN ────────────────────────────────────────────────────── */
+#login-screen{position:fixed;inset:0;background:var(--navy);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;z-index:100;display:none;}
+.login-card{background:#fff;border-radius:var(--r-xl);padding:32px 28px;width:100%;max-width:360px;box-shadow:var(--shadow-lg);}
+.login-logo{font-size:28px;font-weight:700;color:var(--navy);letter-spacing:-.5px;}
+.login-badge{font-size:11px;font-weight:600;color:var(--navy);background:var(--navy-l);border-radius:20px;padding:3px 10px;display:inline-block;margin-top:4px;}
+.login-title{font-size:14px;color:var(--text3);margin:16px 0 24px;}
+.f-lbl{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;}
+.f-row{margin-bottom:16px;}
+.f-inp{width:100%;padding:12px 14px;border-radius:var(--r-md);border:1.5px solid var(--border2);background:#fff;font-size:15px;font-family:inherit;color:var(--text);outline:none;transition:border-color .15s;}
+.f-inp:focus{border-color:var(--navy);}
+.pass-wrap{position:relative;}
+.pass-wrap .f-inp{padding-right:44px;}
+.pass-toggle{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;font-size:16px;cursor:pointer;color:var(--text3);}
+.btn-login{width:100%;padding:14px;border-radius:var(--r-md);background:var(--navy);border:none;color:#fff;font-size:15px;font-weight:600;cursor:pointer;transition:opacity .15s;margin-top:4px;}
+.btn-login:active{opacity:.85;}
+.login-err{font-size:12px;color:var(--red);background:var(--red-l);border-radius:var(--r-sm);padding:10px 12px;margin-bottom:14px;display:none;}
+.conn-badge{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--green);font-weight:600;margin-bottom:20px;}
+.conn-dot{width:7px;height:7px;border-radius:50%;background:var(--green-m);animation:pulse 2s infinite;}
+
+/* ── APP SHELL ────────────────────────────────────────────────── */
+#app{display:none;flex-direction:column;height:100vh;background:var(--bg);}
+#app.visible{display:flex;}
+
+/* Top bar */
+.topbar{height:var(--top-h);background:var(--navy);display:flex;align-items:center;padding:0 16px;gap:12px;flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,.15);}
+.topbar-logo{font-size:18px;font-weight:700;color:#fff;flex:1;}
+.topbar-user{font-size:12px;color:rgba(255,255,255,.7);}
+.topbar-avatar{width:32px;height:32px;border-radius:50%;background:var(--navy-l);border:2px solid rgba(255,255,255,.3);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--navy);}
+.sync-indicator{width:8px;height:8px;border-radius:50%;background:var(--green-m);animation:pulse 2.5s infinite;flex-shrink:0;}
+.sync-indicator.err{background:var(--amber-m);animation:none;}
+
+/* Scroll content */
+.app-content{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:calc(var(--nav-h) + 16px);}
+
+/* Bottom nav */
+.bottom-nav{height:var(--nav-h);background:#fff;border-top:1px solid var(--border);display:flex;align-items:stretch;flex-shrink:0;box-shadow:0 -2px 12px rgba(0,0,0,.06);}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;border:none;background:none;color:var(--text3);font-size:10px;font-weight:500;font-family:inherit;transition:color .15s;position:relative;padding:8px 4px;}
+.nav-item.active{color:var(--navy);}
+.nav-item .nav-icon{font-size:22px;line-height:1;}
+.nav-badge{position:absolute;top:6px;right:calc(50% - 18px);background:var(--red-m);color:#fff;font-size:9px;font-weight:700;border-radius:10px;padding:1px 5px;min-width:16px;text-align:center;}
+
+/* ── PANTALLAS ────────────────────────────────────────────────── */
+.screen{display:none;animation:fadeIn .2s ease;}
+.screen.active{display:block;}
+
+/* ── CARDS GENERALES ──────────────────────────────────────────── */
+.page-header{padding:16px 16px 8px;}
+.page-title{font-size:18px;font-weight:700;color:var(--text);}
+.page-sub{font-size:12px;color:var(--text3);margin-top:2px;}
+.card{background:#fff;border-radius:var(--r-lg);box-shadow:var(--shadow);margin:8px 16px;}
+.card-body{padding:14px 16px;}
+.section-title{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;padding:16px 16px 6px;}
+
+/* ── TICKET CARD ──────────────────────────────────────────────── */
+.tkt-card{background:#fff;border-radius:var(--r-lg);margin:6px 16px;box-shadow:var(--shadow);overflow:hidden;cursor:pointer;transition:transform .1s,box-shadow .1s;}
+.tkt-card:active{transform:scale(.98);box-shadow:0 1px 4px rgba(0,0,0,.08);}
+.tkt-card-top{padding:14px 16px 10px;border-bottom:1px solid var(--border);}
+.tkt-card-title{font-size:14px;font-weight:600;color:var(--text);margin-bottom:6px;line-height:1.3;}
+.tkt-card-meta{display:flex;gap:6px;flex-wrap:wrap;align-items:center;}
+.tkt-card-bottom{padding:10px 16px;display:flex;align-items:center;justify-content:space-between;}
+.tkt-code{font-family:monospace;font-size:11px;color:var(--text3);}
+.tkt-activo{font-size:11px;color:var(--text2);}
+.prog-wrap{display:flex;align-items:center;gap:6px;}
+.prog-bg{flex:1;height:5px;background:var(--bg);border-radius:3px;overflow:hidden;min-width:60px;}
+.prog-f{height:100%;border-radius:3px;background:var(--navy);transition:width .3s;}
+.prog-t{font-size:11px;color:var(--text3);width:28px;text-align:right;flex-shrink:0;}
+
+/* ── BADGES ───────────────────────────────────────────────────── */
+.badge{display:inline-flex;align-items:center;padding:3px 9px;border-radius:20px;font-size:10px;font-weight:600;line-height:1.2;}
+.b-abierto,.b-activo,.b-CREAR{background:var(--green-l);color:var(--green);}
+.b-progreso,.b-asignado{background:var(--blue-l);color:var(--blue);}
+.b-revision,.b-disponible{background:var(--navy-l);color:var(--navy);}
+.b-cerrado,.b-normal{background:#F0F0F0;color:var(--text2);}
+.b-urgente,.b-baja,.b-eliminado{background:var(--red-l);color:var(--red);}
+.b-importante,.b-mantenimiento{background:var(--amber-l);color:var(--amber);}
+
+/* ── FILTROS ──────────────────────────────────────────────────── */
+.filter-scroll{display:flex;gap:8px;padding:8px 16px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+.filter-scroll::-webkit-scrollbar{display:none;}
+.filter-btn{flex-shrink:0;padding:6px 14px;border-radius:20px;border:1.5px solid var(--border2);background:#fff;font-size:12px;font-weight:500;color:var(--text2);cursor:pointer;white-space:nowrap;transition:all .15s;}
+.filter-btn.active{background:var(--navy);border-color:var(--navy);color:#fff;font-weight:600;}
+
+/* ── MÉTRICAS ─────────────────────────────────────────────────── */
+.metrics-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:8px 16px;}
+.metric-card{background:#fff;border-radius:var(--r-lg);padding:14px;box-shadow:var(--shadow);}
+.metric-v{font-size:28px;font-weight:700;color:var(--text);}
+.metric-l{font-size:11px;color:var(--text3);margin-top:3px;}
+
+/* ── BOTTOM SHEET (DETALLE TICKET) ───────────────────────────── */
+.sheet-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;display:none;opacity:0;transition:opacity .25s;}
+.sheet-overlay.open{display:block;opacity:1;}
+.bottom-sheet{position:fixed;bottom:0;left:0;right:0;background:#fff;border-radius:var(--r-xl) var(--r-xl) 0 0;z-index:201;max-height:92vh;overflow-y:auto;transform:translateY(100%);transition:transform .3s cubic-bezier(.32,1,.23,1);}
+.bottom-sheet.open{transform:translateY(0);}
+.sheet-handle{width:40px;height:4px;background:var(--border2);border-radius:2px;margin:12px auto 0;}
+.sheet-header{padding:16px 20px;border-bottom:1px solid var(--border);}
+.sheet-title{font-size:16px;font-weight:700;color:var(--text);}
+.sheet-code{font-family:monospace;font-size:12px;color:var(--text3);margin-top:2px;}
+.sheet-body{padding:16px 20px;}
+
+/* ── FORMULARIOS MOBILE ───────────────────────────────────────── */
+.form-group{margin-bottom:16px;}
+.form-label{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;display:block;}
+.form-input,.form-select,.form-textarea{width:100%;padding:12px 14px;border-radius:var(--r-md);border:1.5px solid var(--border2);background:#fff;font-size:15px;font-family:inherit;color:var(--text);outline:none;transition:border-color .15s;-webkit-appearance:none;}
+.form-input:focus,.form-select:focus,.form-textarea:focus{border-color:var(--navy);}
+.form-textarea{resize:none;height:90px;line-height:1.5;}
+.form-select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23888' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;}
+
+/* Slider de avance */
+.range-wrap{display:flex;align-items:center;gap:12px;}
+.range-input{flex:1;height:6px;-webkit-appearance:none;appearance:none;background:var(--border);border-radius:3px;outline:none;}
+.range-input::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:var(--navy);cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.2);}
+.range-val{font-size:16px;font-weight:700;color:var(--navy);width:40px;text-align:center;flex-shrink:0;}
+
+/* Botones de acción */
+.btn-primary{width:100%;padding:14px;border-radius:var(--r-md);background:var(--navy);border:none;color:#fff;font-size:15px;font-weight:600;cursor:pointer;transition:opacity .15s;}
+.btn-primary:active{opacity:.85;}
+.btn-secondary{width:100%;padding:13px;border-radius:var(--r-md);background:#fff;border:1.5px solid var(--border2);color:var(--text);font-size:15px;font-weight:500;cursor:pointer;margin-top:8px;}
+.btn-danger{width:100%;padding:13px;border-radius:var(--r-md);background:var(--red-l);border:1.5px solid var(--red-m);color:var(--red);font-size:15px;font-weight:600;cursor:pointer;margin-top:8px;}
+.btn-row{display:flex;gap:10px;}
+.btn-row .btn-primary,.btn-row .btn-secondary{margin-top:0;}
+.action-btn{flex:1;padding:12px 8px;border-radius:var(--r-md);border:1.5px solid var(--border);background:#fff;font-size:12px;font-weight:600;color:var(--text);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;transition:all .15s;}
+.action-btn:active{background:var(--navy-l);border-color:var(--navy);color:var(--navy);}
+.action-btn .action-icon{font-size:20px;}
+
+/* ── ESTADO RÁPIDO ────────────────────────────────────────────── */
+.estado-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;}
+.estado-opt{padding:10px 8px;border-radius:var(--r-md);border:1.5px solid var(--border);background:#fff;font-size:12px;font-weight:600;text-align:center;cursor:pointer;transition:all .15s;}
+.estado-opt.selected{border-width:2px;}
+.estado-abierto.selected{background:var(--green-l);border-color:var(--green-m);color:var(--green);}
+.estado-progreso.selected{background:var(--blue-l);border-color:#185FA5;color:var(--blue);}
+.estado-revision.selected{background:var(--navy-l);border-color:var(--navy);color:var(--navy);}
+.estado-cerrado.selected{background:#F0F0F0;border-color:#AAAAAA;color:var(--text2);}
+
+/* ── INVENTARIO MOBILE ────────────────────────────────────────── */
+.activo-card{background:#fff;border-radius:var(--r-lg);margin:6px 16px;box-shadow:var(--shadow);padding:14px 16px;cursor:pointer;transition:transform .1s;}
+.activo-card:active{transform:scale(.98);}
+.activo-card-head{display:flex;align-items:center;gap:12px;margin-bottom:8px;}
+.activo-icon{width:40px;height:40px;border-radius:var(--r-md);background:var(--navy-l);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
+.activo-name{font-size:14px;font-weight:600;color:var(--text);}
+.activo-code{font-family:monospace;font-size:11px;color:var(--text3);margin-top:2px;}
+.activo-info{display:flex;gap:12px;font-size:11px;color:var(--text2);}
+
+/* ── REPORTE BÁSICO ───────────────────────────────────────────── */
+.rep-metric{background:#fff;border-radius:var(--r-lg);padding:16px;margin:6px 16px;box-shadow:var(--shadow);}
+.rep-metric-v{font-size:32px;font-weight:700;color:var(--navy);}
+.rep-metric-l{font-size:12px;color:var(--text3);margin-top:4px;}
+.bar-item{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.bar-lbl{font-size:12px;color:var(--text2);width:90px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.bar-bg{flex:1;height:8px;background:var(--bg);border-radius:4px;overflow:hidden;}
+.bar-fill{height:100%;border-radius:4px;background:var(--navy);transition:width .5s;}
+.bar-val{font-size:12px;color:var(--text3);width:28px;text-align:right;flex-shrink:0;}
+
+/* ── TOAST ────────────────────────────────────────────────────── */
+.toast{position:fixed;bottom:calc(var(--nav-h) + 16px);left:16px;right:16px;background:#222;color:#fff;border-radius:var(--r-md);padding:12px 16px;font-size:13px;font-weight:500;z-index:500;transform:translateY(20px);opacity:0;transition:all .25s;pointer-events:none;}
+.toast.show{transform:translateY(0);opacity:1;}
+.toast.success{background:var(--green);}
+.toast.error{background:var(--red-m);}
+
+/* ── EMPTY STATE ──────────────────────────────────────────────── */
+.empty{text-align:center;padding:48px 24px;}
+.empty-icon{font-size:48px;margin-bottom:12px;}
+.empty-title{font-size:15px;font-weight:600;color:var(--text2);}
+.empty-sub{font-size:13px;color:var(--text3);margin-top:4px;}
+
+/* ── FAB ──────────────────────────────────────────────────────── */
+.fab{position:fixed;bottom:calc(var(--nav-h) + 16px);right:16px;width:52px;height:52px;border-radius:50%;background:var(--navy);border:none;color:#fff;font-size:24px;cursor:pointer;box-shadow:0 4px 16px rgba(27,58,107,.4);display:flex;align-items:center;justify-content:center;z-index:50;transition:transform .15s,box-shadow .15s;}
+.fab:active{transform:scale(.93);box-shadow:0 2px 8px rgba(27,58,107,.3);}
+
+/* ── MODAL NUEVO TICKET ───────────────────────────────────────── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:300;display:none;}
+.modal-overlay.open{display:block;}
+.modal-sheet{position:fixed;bottom:0;left:0;right:0;background:#fff;border-radius:var(--r-xl) var(--r-xl) 0 0;z-index:301;max-height:95vh;overflow-y:auto;transform:translateY(100%);transition:transform .3s cubic-bezier(.32,1,.23,1);padding-bottom:env(safe-area-inset-bottom,16px);}
+.modal-sheet.open{transform:translateY(0);}
+.modal-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:#fff;z-index:1;}
+.modal-header-title{font-size:16px;font-weight:700;color:var(--text);}
+.modal-close{background:none;border:none;font-size:22px;cursor:pointer;color:var(--text3);padding:4px 8px;}
+.modal-body{padding:20px;}
+
+/* ── DETALLE ACTIVO ───────────────────────────────────────────── */
+.det-field{padding:10px 0;border-bottom:1px solid var(--border);}
+.det-field:last-child{border-bottom:none;}
+.det-field-label{font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px;}
+.det-field-val{font-size:14px;color:var(--text);font-weight:500;}
+
+/* ── HISTORIAL ────────────────────────────────────────────────── */
+.hist-item{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);}
+.hist-item:last-child{border-bottom:none;}
+.hist-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;margin-top:4px;}
+.hist-dot.green{background:var(--green-m);}
+.hist-dot.amber{background:var(--amber-m);}
+.hist-dot.red{background:var(--red-m);}
+.hist-dot.blue{background:#185FA5;}
+.hist-dot.navy{background:var(--navy);}
+.hist-tipo{font-size:13px;font-weight:600;color:var(--text);}
+.hist-desc{font-size:12px;color:var(--text2);margin-top:2px;line-height:1.4;}
+.hist-ts{font-size:10px;color:var(--text3);margin-top:3px;}
+
+/* ── SAFE AREA ────────────────────────────────────────────────── */
+.bottom-nav{padding-bottom:env(safe-area-inset-bottom,0);}
+
+/* ── OFFLINE BANNER ───────────────────────────────────────────── */
+.offline-banner{background:var(--amber-l);border-bottom:1px solid var(--amber-m);padding:8px 16px;font-size:12px;color:var(--amber);font-weight:500;text-align:center;display:none;}
+.offline-banner.show{display:block;}
+</style>
+</head>
+<body>
+
+<!-- SPLASH -->
+<div id="splash">
+  <div class="splash-logo">SAGA</div>
+  <div class="splash-sub">Técnico · Versión Móvil</div>
+  <div class="splash-spinner"></div>
+</div>
+
+<!-- OFFLINE BANNER -->
+<div class="offline-banner" id="offline-banner">📡 Sin conexión — mostrando datos en caché</div>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">SAGA</div>
+    <div class="login-badge">Módulo Técnico</div>
+    <p class="login-title">Sistema de Activos y Gestión Administrativa</p>
+    <div class="conn-badge"><span class="conn-dot"></span> Conectado a Google Sheets</div>
+    <div class="login-err" id="login-err"></div>
+    <div class="f-row">
+      <div class="f-lbl">Usuario</div>
+      <input class="f-inp" id="l-user" placeholder="Tu usuario" autocapitalize="none" autocomplete="username">
+    </div>
+    <div class="f-row">
+      <div class="f-lbl">Contraseña</div>
+      <div class="pass-wrap">
+        <input class="f-inp" type="password" id="l-pass" placeholder="Contraseña" autocomplete="current-password">
+        <button class="pass-toggle" onclick="togglePass('l-pass',this)" type="button">👁</button>
+      </div>
+    </div>
+    <button class="btn-login" onclick="doLogin()">Iniciar sesión</button>
+  </div>
+</div>
+
+<!-- APP -->
+<div class="app" id="app">
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="topbar-logo">SAGA</div>
+    <div class="sync-indicator" id="sync-dot"></div>
+    <div class="topbar-avatar" id="top-avatar">?</div>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="app-content">
+
+    <!-- DASHBOARD -->
+    <div class="screen active" id="scr-dashboard">
+      <div class="page-header">
+        <div class="page-title" id="dash-greeting">Hola 👋</div>
+        <div class="page-sub" id="dash-fecha"></div>
+      </div>
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <div class="metric-v" id="m-mis-tkt" style="color:var(--navy)">0</div>
+          <div class="metric-l">Mis tickets</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-v" id="m-urgentes" style="color:var(--red-m)">0</div>
+          <div class="metric-l">Urgentes</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-v" id="m-progreso" style="color:#185FA5">0</div>
+          <div class="metric-l">En progreso</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-v" id="m-cerrados" style="color:var(--green-m)">0</div>
+          <div class="metric-l">Cerrados hoy</div>
+        </div>
+      </div>
+      <div class="section-title">Mis tickets pendientes</div>
+      <div id="dash-tickets-list"></div>
+      <div class="section-title">Próximos deadlines</div>
+      <div id="dash-deadlines"></div>
+    </div>
+
+    <!-- TICKETS -->
+    <div class="screen" id="scr-tickets">
+      <div class="page-header">
+        <div class="page-title">Tickets</div>
+      </div>
+      <div class="filter-scroll" id="tkt-filters">
+        <button class="filter-btn active" onclick="filterTkt('todos',this)">Todos</button>
+        <button class="filter-btn" onclick="filterTkt('abierto',this)">Abiertos</button>
+        <button class="filter-btn" onclick="filterTkt('progreso',this)">En progreso</button>
+        <button class="filter-btn" onclick="filterTkt('revision',this)">Revisión</button>
+        <button class="filter-btn" onclick="filterTkt('cerrado',this)">Cerrados</button>
+      </div>
+      <div id="tickets-list"></div>
+    </div>
+
+    <!-- INVENTARIO -->
+    <div class="screen" id="scr-inventario">
+      <div class="page-header">
+        <div class="page-title">Inventario</div>
+      </div>
+      <div class="filter-scroll">
+        <button class="filter-btn active" onclick="filterAct('todos',this)">Todos</button>
+        <button class="filter-btn" onclick="filterAct('activo',this)">Activos</button>
+        <button class="filter-btn" onclick="filterAct('mantenimiento',this)">Mantenimiento</button>
+        <button class="filter-btn" onclick="filterAct('baja',this)">Baja</button>
+      </div>
+      <div id="activos-list"></div>
+    </div>
+
+    <!-- REPORTES -->
+    <div class="screen" id="scr-reportes">
+      <div class="page-header">
+        <div class="page-title">Mis reportes</div>
+        <div class="page-sub">Resumen de tu actividad</div>
+      </div>
+      <div id="reportes-content"></div>
+    </div>
+
+  </div><!-- /app-content -->
+
+  <!-- FAB NUEVO TICKET -->
+  <button class="fab" id="fab-nuevo" onclick="openNuevoTicket()" title="Nuevo ticket">＋</button>
+
+  <!-- BOTTOM NAV -->
+  <nav class="bottom-nav">
+    <button class="nav-item active" id="nav-dashboard" onclick="goScreen('dashboard',this)">
+      <span class="nav-icon">◈</span>
+      <span>Inicio</span>
+    </button>
+    <button class="nav-item" id="nav-tickets" onclick="goScreen('tickets',this)">
+      <span class="nav-icon">🎫</span>
+      <span>Tickets</span>
+      <span class="nav-badge" id="badge-tkt" style="display:none">0</span>
+    </button>
+    <button class="nav-item" id="nav-inventario" onclick="goScreen('inventario',this)">
+      <span class="nav-icon">📦</span>
+      <span>Inventario</span>
+    </button>
+    <button class="nav-item" id="nav-reportes" onclick="goScreen('reportes',this)">
+      <span class="nav-icon">📊</span>
+      <span>Reportes</span>
+    </button>
+  </nav>
+
+</div><!-- /app -->
+
+<!-- BOTTOM SHEET — DETALLE TICKET -->
+<div class="sheet-overlay" id="sheet-overlay" onclick="closeSheet()"></div>
+<div class="bottom-sheet" id="ticket-sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-header">
+    <div>
+      <div class="sheet-title" id="sheet-tkt-title">—</div>
+      <div class="sheet-code" id="sheet-tkt-code">—</div>
+    </div>
+    <span class="badge" id="sheet-tkt-estado">—</span>
+  </div>
+  <div class="sheet-body" id="sheet-body"></div>
+</div>
+
+<!-- MODAL NUEVO / EDITAR TICKET -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModal()"></div>
+<div class="modal-sheet" id="modal-ticket">
+  <div class="modal-header">
+    <span class="modal-header-title" id="modal-title">Nuevo ticket</span>
+    <button class="modal-close" onclick="closeModal()">✕</button>
+  </div>
+  <div class="modal-body">
+    <input type="hidden" id="mt-id">
+    <div class="form-group">
+      <label class="form-label">Título *</label>
+      <input class="form-input" id="mt-titulo" placeholder="Describe el problema o tarea...">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Activo vinculado</label>
+      <select class="form-select" id="mt-activo">
+        <option value="">— Sin activo —</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Tipo</label>
+      <select class="form-select" id="mt-tipo">
+        <option value="incidencia">Incidencia</option>
+        <option value="mantenimiento">Mantenimiento</option>
+        <option value="solicitud">Solicitud</option>
+        <option value="tarea">Tarea</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Prioridad</label>
+      <select class="form-select" id="mt-prior">
+        <option value="urgente">Urgente</option>
+        <option value="importante" selected>Importante</option>
+        <option value="normal">Normal</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Estado</label>
+      <select class="form-select" id="mt-estado">
+        <option value="abierto">Abierto</option>
+        <option value="progreso">En progreso</option>
+        <option value="revision">En revisión</option>
+        <option value="cerrado">Cerrado</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Avance: <span id="mt-avance-val">0</span>%</label>
+      <div class="range-wrap">
+        <input type="range" class="range-input" id="mt-avance" min="0" max="100" value="0"
+          oninput="document.getElementById('mt-avance-val').textContent=this.value">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Deadline</label>
+      <input class="form-input" type="date" id="mt-dead">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Descripción</label>
+      <textarea class="form-textarea" id="mt-desc" placeholder="Detalle del problema..."></textarea>
+    </div>
+    <div class="form-group" id="mt-motivo-wrap" style="display:none">
+      <label class="form-label" style="color:var(--red)">Motivo de edición *</label>
+      <input class="form-input" id="mt-motivo" placeholder="¿Por qué se edita este ticket?">
+    </div>
+    <button class="btn-primary" onclick="saveTicket()" id="mt-save-btn">Guardar ticket</button>
+    <button class="btn-secondary" onclick="closeModal()">Cancelar</button>
+  </div>
+</div>
+
+<!-- MODAL MANTENIMIENTO -->
+<div class="modal-overlay" id="mant-overlay" onclick="closeMant()"></div>
+<div class="modal-sheet" id="modal-mant">
+  <div class="modal-header">
+    <span class="modal-header-title">Registrar mantenimiento</span>
+    <button class="modal-close" onclick="closeMant()">✕</button>
+  </div>
+  <div class="modal-body">
+    <div class="form-group">
+      <label class="form-label">Tipo</label>
+      <select class="form-select" id="mm-tipo">
+        <option>Preventivo</option><option>Correctivo</option>
+        <option>Actualización</option><option>Limpieza</option>
+        <option>Reparación</option><option>Inspección</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Descripción *</label>
+      <textarea class="form-textarea" id="mm-desc" placeholder="¿Qué se realizó?"></textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Fecha</label>
+      <input class="form-input" type="date" id="mm-fecha">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Costo ($)</label>
+      <input class="form-input" type="number" id="mm-costo" placeholder="0.00">
+    </div>
+    <button class="btn-primary" onclick="saveMant()">Registrar mantenimiento</button>
+    <button class="btn-secondary" onclick="closeMant()">Cancelar</button>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════════════════════════════
+// CONFIG
+// ══════════════════════════════════════════════════════════════════
+const API = "https://script.google.com/macros/s/AKfycbxl0l0Y45cy0bbyi7xCVb5e-i4gh2aZfJQLnmFwCiLru002-hTAJ9ljWvmDh5WfiZShxQ/exec";
+const CACHE_KEY = "saga_mobile_cache";
+const TIPO_ICON = {Computadora:"🖥️",Laptop:"💻",Impresora:"🖨️",Servidor:"🗄️","Red / Switch":"🔌",Móvil:"📱",Tablet:"📱",Monitor:"🖥️",Software:"💿",Vehículo:"🚗",Otro:"📦"};
+
+let session = null;
+let tickets = [], activos = [], usuarios = [];
+let cntTickets = 0;
+let activoDetalle = null;
+let filtroTkt = "todos", filtroAct = "todos";
+
+// ── UTILS ────────────────────────────────────────────────────────
+function ts(){return new Date().toLocaleString("es-PA",{dateStyle:"short",timeStyle:"short"});}
+function hashPass(p){let h=5381;for(let i=0;i<p.length;i++){h=((h<<5)+h)^p.charCodeAt(i);h=h&h;}return"H"+Math.abs(h).toString(36);}
+function initials(n){if(!n)return"?";const p=n.trim().split(" ");return(p[0][0]+(p[1]?p[1][0]:"")).toUpperCase();}
+function togglePass(id,btn){const el=document.getElementById(id);el.type=el.type==="password"?"text":"password";btn.textContent=el.type==="password"?"👁":"🙈";}
+function parseHist(v){if(Array.isArray(v))return v;if(typeof v==="string"&&v.startsWith("["))try{return JSON.parse(v);}catch(e){}return[];}
+function genCode(pre,n){return pre+"-"+String(n+1).padStart(4,"0");}
+
+function showToast(msg, type="", dur=2800){
+  const t=document.getElementById("toast");
+  t.textContent=msg;t.className="toast "+(type||"");
+  t.classList.add("show");
+  setTimeout(()=>t.classList.remove("show"),dur);
+}
+
+function setSyncStatus(ok){
+  const d=document.getElementById("sync-dot");
+  d.className="sync-indicator"+(ok?"":" err");
+}
+
+// Cache local
+function saveCache(){try{localStorage.setItem(CACHE_KEY,JSON.stringify({tickets,activos,usuarios,ts:Date.now()}));}catch(e){}}
+function loadCache(){try{const c=JSON.parse(localStorage.getItem(CACHE_KEY)||"null");if(c){tickets=c.tickets||[];activos=c.activos||[];usuarios=c.usuarios||[];cntTickets=tickets.length;return true;}}catch(e){}return false;}
+
+// ── API ─────────────────────────────────────────────────────────
+async function apiGet(sheet){
+  try{const r=await fetch(API+"?sheet="+sheet,{mode:"cors"});if(!r.ok)return[];const d=await r.json();return Array.isArray(d)?d:[];}
+  catch(e){return null;}
+}
+async function apiPost(sheet,action,payload){
+  try{await fetch(API,{method:"POST",mode:"no-cors",headers:{"Content-Type":"application/json"},body:JSON.stringify({sheet,action,payload})});setSyncStatus(true);return true;}
+  catch(e){setSyncStatus(false);return false;}
+}
+
+// ── CARGA INICIAL ─────────────────────────────────────────────
+// Fetch con timeout para evitar colgarse
+async function apiGetTimeout(sheet, timeoutMs=8000){
+  return new Promise((resolve)=>{
+    const timer=setTimeout(()=>resolve(null),timeoutMs);
+    apiGet(sheet).then(data=>{clearTimeout(timer);resolve(data);}).catch(()=>{clearTimeout(timer);resolve(null);});
+  });
+}
+
+async function loadData(){
+  const fromCache = loadCache();
+  const splash = document.getElementById("splash");
+
+  // Mostrar mensaje de estado en el splash
+  const addMsg = (txt)=>{
+    let msg = document.getElementById("splash-msg");
+    if(!msg){
+      msg = document.createElement("div");
+      msg.id = "splash-msg";
+      msg.style.cssText="color:rgba(255,255,255,.5);font-size:12px;margin-top:16px;text-align:center;";
+      splash.appendChild(msg);
+    }
+    msg.textContent = txt;
+  };
+
+  // Si hay caché, mostrar login de inmediato y sincronizar en background
+  if(fromCache){
+    addMsg("Cargando desde caché...");
+    // Sincronizar en background sin bloquear
+    setTimeout(async()=>{
+      try{
+        const [rawT,rawA,rawU]=await Promise.all([
+          apiGetTimeout("tickets"),
+          apiGetTimeout("activos"),
+          apiGetTimeout("usuarios")
+        ]);
+        if(rawT)tickets=rawT.map(r=>({...r,id:r.codigo,avance:parseInt(r.avance)||0,historial:parseHist(r.historial)}));
+        if(rawA)activos=rawA.map(r=>({...r,id:r.codigo,valor:parseFloat(r.valor)||0,vida:parseInt(r.vida)||3,historial:parseHist(r.historial)}));
+        if(rawU)usuarios=rawU.map(r=>({...r}));
+        if(rawT||rawA||rawU){
+          saveCache();cntTickets=tickets.length;
+          setSyncStatus(true);
+          document.getElementById("offline-banner").classList.remove("show");
+          // Refrescar UI si ya está logueado
+          if(session){renderDashboard();renderTickets();renderActivos();renderReportes();}
+        }
+      }catch(e){setSyncStatus(false);}
+    },500);
+    return; // Salir inmediatamente para mostrar login
+  }
+
+  // Sin caché — intentar cargar con timeout
+  addMsg("Conectando a Google Sheets...");
+  try{
+    const [rawT,rawA,rawU]=await Promise.all([
+      apiGetTimeout("tickets",10000),
+      apiGetTimeout("activos",10000),
+      apiGetTimeout("usuarios",10000)
+    ]);
+    if(rawT){tickets=rawT.map(r=>({...r,id:r.codigo,avance:parseInt(r.avance)||0,historial:parseHist(r.historial)}));cntTickets=tickets.length;}
+    if(rawA){activos=rawA.map(r=>({...r,id:r.codigo,valor:parseFloat(r.valor)||0,vida:parseInt(r.vida)||3,historial:parseHist(r.historial)}));}
+    if(rawU){usuarios=rawU.map(r=>({...r}));}
+    if(!usuarios.length){
+      addMsg("Sin datos. Verifica tu conexión.");
+      throw new Error("Sin datos del servidor");
+    }
+    saveCache();setSyncStatus(true);
+    document.getElementById("offline-banner").classList.remove("show");
+  }catch(e){
+    setSyncStatus(false);
+    document.getElementById("offline-banner").classList.add("show");
+    if(!usuarios.length) throw e;
+  }
+}
+
+// ── LOGIN ────────────────────────────────────────────────────────
+async function initApp(){
+  // Timeout global de seguridad — máximo 12 segundos antes de mostrar login
+  const safetyTimer = setTimeout(()=>{
+    console.warn("Timeout de seguridad activado");
+    document.getElementById("splash").classList.add("hide");
+    setTimeout(()=>{document.getElementById("splash").style.display="none";},400);
+    document.getElementById("login-screen").style.display="flex";
+    document.getElementById("offline-banner").classList.add("show");
+  },12000);
+
+  try{
+    await loadData();
+    clearTimeout(safetyTimer);
+  }catch(e){
+    clearTimeout(safetyTimer);
+    console.error("Error cargando datos:",e);
+  }
+  document.getElementById("splash").classList.add("hide");
+  setTimeout(()=>{document.getElementById("splash").style.display="none";},400);
+  document.getElementById("login-screen").style.display="flex";
+}
+
+function doLogin(){
+  const u=document.getElementById("l-user").value.trim();
+  const p=document.getElementById("l-pass").value;
+  const err=document.getElementById("login-err");
+  err.style.display="none";
+  if(!u||!p){err.textContent="Ingresa usuario y contraseña.";err.style.display="block";return;}
+  const usuario=usuarios.find(x=>x.username===u&&x.estado!=="inactivo");
+  const passOk=usuario&&(usuario.passHash===hashPass(p)||usuario.pass===p);
+  if(!passOk){err.textContent=usuario?"Contraseña incorrecta.":"Usuario no encontrado o inactivo.";err.style.display="block";return;}
+  // Solo técnicos y admins
+  if(!["tecnico","admin"].includes(usuario.rol)){
+    err.textContent="Esta app es para técnicos. Usa la versión web para tu rol.";
+    err.style.display="block";return;
+  }
+  session={username:u,nombre:usuario.nombre,rol:usuario.rol,data:usuario};
+  apiPost("usuarios","update",{...usuario,ultimoAcceso:ts()});
+  apiPost("auditoria","insert",{ts:ts(),usuario:u,nombre:usuario.nombre,rol:usuario.rol,accion:"LOGIN",tipo:"Sistema",codigo:"MOBILE",detalle:"Acceso desde app móvil SAGA"});
+  document.getElementById("login-screen").style.display="none";
+  document.getElementById("app").classList.add("visible");
+  document.getElementById("top-avatar").textContent=initials(usuario.nombre);
+  renderDashboard();
+  renderTickets();
+  renderActivos();
+  renderReportes();
+  updateBadge();
+}
+
+// ── NAVEGACIÓN ────────────────────────────────────────────────
+function goScreen(name, el){
+  document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
+  document.querySelectorAll(".nav-item").forEach(n=>n.classList.remove("active"));
+  document.getElementById("scr-"+name).classList.add("active");
+  if(el)el.classList.add("active");
+  const fab=document.getElementById("fab-nuevo");
+  fab.style.display=name==="tickets"||name==="dashboard"?"flex":"none";
+}
+
+// ── DASHBOARD ─────────────────────────────────────────────────
+function renderDashboard(){
+  const nombre=session?.nombre?.split(" ")[0]||"";
+  const hora=new Date().getHours();
+  const sal=hora<12?"Buenos días":"hora<18"?"Buenas tardes":"Buenas noches";
+  document.getElementById("dash-greeting").textContent=(hora<12?"Buenos días":"hora<18?"Buenas tardes":"Buenas noches")+" "+nombre+" 👋";
+  document.getElementById("dash-fecha").textContent=new Date().toLocaleDateString("es-PA",{weekday:"long",day:"numeric",month:"long"});
+
+  const misTkt=tickets.filter(t=>t.resp===session.nombre&&t.estado!=="eliminado"&&t.estado!=="cerrado");
+  const urgentes=misTkt.filter(t=>t.prior==="urgente");
+  const enProgreso=misTkt.filter(t=>t.estado==="progreso");
+  const hoy=new Date().toISOString().slice(0,10);
+  const cerradosHoy=tickets.filter(t=>t.resp===session.nombre&&t.estado==="cerrado"&&(t.ultimaEdicion||"").startsWith(hoy));
+
+  document.getElementById("m-mis-tkt").textContent=misTkt.length;
+  document.getElementById("m-urgentes").textContent=urgentes.length;
+  document.getElementById("m-progreso").textContent=enProgreso.length;
+  document.getElementById("m-cerrados").textContent=cerradosHoy.length;
+
+  // Mis tickets pendientes
+  const listEl=document.getElementById("dash-tickets-list");
+  const pending=misTkt.slice(0,5);
+  if(!pending.length){listEl.innerHTML=`<div class="empty"><div class="empty-icon">✅</div><div class="empty-title">¡Sin tickets pendientes!</div></div>`;return;}
+  listEl.innerHTML=pending.map(t=>tktCardHTML(t)).join("");
+
+  // Deadlines próximos
+  const dl=document.getElementById("dash-deadlines");
+  const proximos=tickets.filter(t=>{
+    if(!t.dead||t.dead==="—"||t.estado==="cerrado"||t.estado==="eliminado")return false;
+    const dias=(new Date(t.dead)-new Date())/(24*3600*1000);
+    return dias>=0&&dias<=7;
+  }).sort((a,b)=>new Date(a.dead)-new Date(b.dead)).slice(0,4);
+  if(!proximos.length){dl.innerHTML=`<div style="padding:8px 16px 16px;font-size:13px;color:var(--text3)">Sin deadlines próximos</div>`;return;}
+  dl.innerHTML=proximos.map(t=>{
+    const dias=Math.ceil((new Date(t.dead)-new Date())/(24*3600*1000));
+    const color=dias<=1?"var(--red-m)":dias<=3?"var(--amber-m)":"var(--navy)";
+    return`<div class="tkt-card" onclick="openTicketSheet('${t.codigo}')">
+      <div class="tkt-card-top">
+        <div class="tkt-card-title">${t.titulo}</div>
+        <div class="tkt-card-meta">
+          <span class="badge b-${t.prior}">${t.prior}</span>
+          <span style="font-size:11px;color:${color};font-weight:600">⏰ ${dias===0?"Hoy":dias===1?"Mañana":"En "+dias+" días"}</span>
+        </div>
+      </div>
+      <div class="tkt-card-bottom"><span class="tkt-code">${t.codigo}</span><span class="badge b-${t.estado}">${t.estado}</span></div>
+    </div>`;
+  }).join("");
+}
+
+function tktCardHTML(t){
+  return`<div class="tkt-card" onclick="openTicketSheet('${t.codigo}')">
+    <div class="tkt-card-top">
+      <div class="tkt-card-title">${t.titulo}</div>
+      <div class="tkt-card-meta">
+        <span class="badge b-${t.estado}">${t.estado}</span>
+        <span class="badge b-${t.prior}">${t.prior}</span>
+        ${t.activoNombre&&t.activoNombre!=="—"?`<span style="font-size:10px;color:var(--text3)">📦 ${t.activoNombre}</span>`:""}
+      </div>
+    </div>
+    <div class="tkt-card-bottom">
+      <span class="tkt-code">${t.codigo}</span>
+      <div class="prog-wrap" style="max-width:120px">
+        <div class="prog-bg"><div class="prog-f" style="width:${t.avance||0}%"></div></div>
+        <span class="prog-t">${t.avance||0}%</span>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ── TICKETS ───────────────────────────────────────────────────
+function renderTickets(){
+  const list=document.getElementById("tickets-list");
+  let data=tickets.filter(t=>t.estado!=="eliminado");
+  // Técnico solo ve sus tickets
+  if(session?.rol==="tecnico") data=data.filter(t=>t.resp===session.nombre);
+  if(filtroTkt!=="todos") data=data.filter(t=>t.estado===filtroTkt);
+  if(!data.length){list.innerHTML=`<div class="empty"><div class="empty-icon">🎫</div><div class="empty-title">Sin tickets</div><div class="empty-sub">No hay tickets ${filtroTkt!=="todos"?"en este estado":""}</div></div>`;return;}
+  list.innerHTML=data.map(t=>tktCardHTML(t)).join("");
+  updateBadge();
+}
+
+function filterTkt(f,el){
+  filtroTkt=f;
+  document.querySelectorAll("#tkt-filters .filter-btn").forEach(b=>b.classList.remove("active"));
+  el.classList.add("active");
+  renderTickets();
+}
+
+function updateBadge(){
+  const misTkt=tickets.filter(t=>t.resp===session?.nombre&&["abierto","progreso","revision"].includes(t.estado));
+  const badge=document.getElementById("badge-tkt");
+  if(misTkt.length>0){badge.textContent=misTkt.length;badge.style.display="block";}
+  else badge.style.display="none";
+}
+
+// ── DETALLE TICKET (BOTTOM SHEET) ─────────────────────────────
+function openTicketSheet(codigo){
+  const t=tickets.find(x=>x.codigo===codigo);if(!t)return;
+  document.getElementById("sheet-tkt-title").textContent=t.titulo;
+  document.getElementById("sheet-tkt-code").textContent=`${t.codigo} · ${t.tipo}`;
+  const estadoEl=document.getElementById("sheet-tkt-estado");
+  estadoEl.textContent=t.estado;estadoEl.className=`badge b-${t.estado}`;
+
+  document.getElementById("sheet-body").innerHTML=`
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">
+      <span class="badge b-${t.prior}">${t.prior}</span>
+      ${t.activoNombre&&t.activoNombre!=="—"?`<span style="font-size:12px;color:var(--text2);background:var(--bg);padding:3px 10px;border-radius:20px">📦 ${t.activoNombre}</span>`:""}
+      ${t.dead&&t.dead!=="—"?`<span style="font-size:12px;color:var(--amber);background:var(--amber-l);padding:3px 10px;border-radius:20px">📅 ${t.dead}</span>`:""}
+    </div>
+    ${t.desc?`<p style="font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:16px">${t.desc}</p>`:""}
+    <div style="margin-bottom:20px">
+      <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Avance actual</div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="flex:1;height:10px;background:var(--bg);border-radius:5px;overflow:hidden">
+          <div style="height:100%;background:var(--navy);border-radius:5px;width:${t.avance||0}%"></div>
+        </div>
+        <span style="font-size:18px;font-weight:700;color:var(--navy)">${t.avance||0}%</span>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;margin-bottom:20px">
+      <button class="action-btn" onclick="quickEdit('${t.codigo}')"><span class="action-icon">✏️</span><span>Editar</span></button>
+      <button class="action-btn" onclick="quickEstado('${t.codigo}')"><span class="action-icon">🔄</span><span>Estado</span></button>
+      <button class="action-btn" onclick="quickAvance('${t.codigo}')"><span class="action-icon">📈</span><span>Avance</span></button>
+    </div>
+    <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Historial (${(t.historial||[]).length})</div>
+    ${(t.historial||[]).map(h=>`<div class="hist-item">
+      <div class="hist-dot ${h.color||"navy"}"></div>
+      <div><div class="hist-tipo">${h.tipo}</div><div class="hist-desc">${h.desc}</div><div class="hist-ts">${h.fecha||""} · ${h.usuario||""}</div></div>
+    </div>`).join("")||`<div style="font-size:12px;color:var(--text3)">Sin historial</div>`}
+  `;
+
+  document.getElementById("sheet-overlay").classList.add("open");
+  document.getElementById("ticket-sheet").classList.add("open");
+}
+
+function closeSheet(){
+  document.getElementById("sheet-overlay").classList.remove("open");
+  document.getElementById("ticket-sheet").classList.remove("open");
+}
+
+// ── CAMBIO RÁPIDO DE ESTADO ───────────────────────────────────
+function quickEstado(codigo){
+  const t=tickets.find(x=>x.codigo===codigo);if(!t)return;
+  closeSheet();
+  const overlay=document.getElementById("modal-overlay");
+  const modal=document.getElementById("modal-ticket");
+
+  // Reusar modal para cambio rápido de estado
+  document.getElementById("modal-title").textContent="Cambiar estado";
+  document.getElementById("mt-id").value=codigo;
+  document.getElementById("mt-titulo").value=t.titulo;
+  document.getElementById("mt-tipo").value=t.tipo||"incidencia";
+  document.getElementById("mt-prior").value=t.prior||"importante";
+  document.getElementById("mt-estado").value=t.estado||"abierto";
+  document.getElementById("mt-avance").value=t.avance||0;
+  document.getElementById("mt-avance-val").textContent=t.avance||0;
+  document.getElementById("mt-dead").value=t.dead!=="—"?t.dead||"":"";
+  document.getElementById("mt-desc").value=t.desc||"";
+  document.getElementById("mt-motivo-wrap").style.display="block";
+  document.getElementById("mt-motivo").value="";
+  document.getElementById("mt-save-btn").textContent="Guardar cambios";
+  // Scroll to estado
+  overlay.classList.add("open");
+  modal.classList.add("open");
+  setTimeout(()=>document.getElementById("mt-estado").focus(),300);
+}
+
+function quickAvance(codigo){
+  const t=tickets.find(x=>x.codigo===codigo);if(!t)return;
+  closeSheet();
+  document.getElementById("modal-title").textContent="Actualizar avance";
+  document.getElementById("mt-id").value=codigo;
+  document.getElementById("mt-titulo").value=t.titulo;
+  document.getElementById("mt-tipo").value=t.tipo||"incidencia";
+  document.getElementById("mt-prior").value=t.prior||"importante";
+  document.getElementById("mt-estado").value=t.estado||"abierto";
+  document.getElementById("mt-avance").value=t.avance||0;
+  document.getElementById("mt-avance-val").textContent=t.avance||0;
+  document.getElementById("mt-dead").value=t.dead!=="—"?t.dead||"":"";
+  document.getElementById("mt-desc").value=t.desc||"";
+  document.getElementById("mt-motivo-wrap").style.display="block";
+  document.getElementById("mt-motivo").value="";
+  document.getElementById("mt-save-btn").textContent="Guardar cambios";
+  document.getElementById("modal-overlay").classList.add("open");
+  document.getElementById("modal-ticket").classList.add("open");
+}
+
+function quickEdit(codigo){
+  closeSheet();
+  openEditTicket(codigo);
+}
+
+// ── NUEVO / EDITAR TICKET ─────────────────────────────────────
+function openNuevoTicket(){
+  document.getElementById("modal-title").textContent="Nuevo ticket";
+  document.getElementById("mt-id").value="";
+  document.getElementById("mt-titulo").value="";
+  document.getElementById("mt-tipo").value="incidencia";
+  document.getElementById("mt-prior").value="importante";
+  document.getElementById("mt-estado").value="abierto";
+  document.getElementById("mt-avance").value=0;
+  document.getElementById("mt-avance-val").textContent=0;
+  document.getElementById("mt-dead").value="";
+  document.getElementById("mt-desc").value="";
+  document.getElementById("mt-motivo-wrap").style.display="none";
+  document.getElementById("mt-save-btn").textContent="Crear ticket";
+  // Poblar activos
+  const sel=document.getElementById("mt-activo");
+  sel.innerHTML='<option value="">— Sin activo —</option>'+activos.filter(a=>a.estado!=="eliminado").map(a=>`<option value="${a.codigo}">${a.codigo} — ${a.nombre}</option>`).join("");
+  document.getElementById("modal-overlay").classList.add("open");
+  document.getElementById("modal-ticket").classList.add("open");
+}
+
+function openEditTicket(codigo){
+  const t=tickets.find(x=>x.codigo===codigo);if(!t)return;
+  document.getElementById("modal-title").textContent="Editar ticket";
+  document.getElementById("mt-id").value=codigo;
+  document.getElementById("mt-titulo").value=t.titulo||"";
+  document.getElementById("mt-tipo").value=t.tipo||"incidencia";
+  document.getElementById("mt-prior").value=t.prior||"importante";
+  document.getElementById("mt-estado").value=t.estado||"abierto";
+  document.getElementById("mt-avance").value=t.avance||0;
+  document.getElementById("mt-avance-val").textContent=t.avance||0;
+  document.getElementById("mt-dead").value=t.dead&&t.dead!=="—"?t.dead:"";
+  document.getElementById("mt-desc").value=t.desc||"";
+  document.getElementById("mt-motivo-wrap").style.display="block";
+  document.getElementById("mt-motivo").value="";
+  document.getElementById("mt-save-btn").textContent="Guardar cambios";
+  const sel=document.getElementById("mt-activo");
+  sel.innerHTML='<option value="">— Sin activo —</option>'+activos.filter(a=>a.estado!=="eliminado").map(a=>`<option value="${a.codigo}">${a.codigo} — ${a.nombre}</option>`).join("");
+  sel.value=t.activoId||"";
+  document.getElementById("modal-overlay").classList.add("open");
+  document.getElementById("modal-ticket").classList.add("open");
+}
+
+async function saveTicket(){
+  const titulo=document.getElementById("mt-titulo").value.trim();
+  if(!titulo){showToast("El título es obligatorio","error");return;}
+  const editId=document.getElementById("mt-id").value;
+  const isEdit=editId!=="";
+  if(isEdit){
+    const motivo=document.getElementById("mt-motivo").value.trim();
+    if(!motivo){showToast("El motivo es obligatorio","error");return;}
+    const t=tickets.find(x=>x.codigo===editId);if(!t)return;
+    const estadoAntes=t.estado;
+    t.titulo=titulo;
+    t.tipo=document.getElementById("mt-tipo").value;
+    t.prior=document.getElementById("mt-prior").value;
+    t.estado=document.getElementById("mt-estado").value;
+    t.avance=parseInt(document.getElementById("mt-avance").value)||0;
+    t.dead=document.getElementById("mt-dead").value||"—";
+    t.desc=document.getElementById("mt-desc").value.trim();
+    t.historial=t.historial||[];
+    t.historial.push({tipo:"Edición",desc:`Motivo: ${motivo}. Estado: ${estadoAntes}→${t.estado}`,fecha:ts(),usuario:session.nombre,color:"amber"});
+    await apiPost("tickets","update",t);
+    await apiPost("auditoria","insert",{ts:ts(),usuario:session.username,nombre:session.nombre,rol:session.rol,accion:"EDITAR",tipo:"Ticket",codigo:t.codigo,detalle:`Motivo: ${motivo} | App Móvil`});
+    showToast("Ticket actualizado ✓","success");
+  } else {
+    const code=genCode("TKT",cntTickets++);
+    const aId=document.getElementById("mt-activo").value;
+    const aNom=aId?(activos.find(a=>a.codigo===aId)||{nombre:"—"}).nombre:"—";
+    const t={id:code,codigo:code,titulo,activoId:aId||"",activoNombre:aNom,resp:session.nombre,tipo:document.getElementById("mt-tipo").value,prior:document.getElementById("mt-prior").value,estado:document.getElementById("mt-estado").value,avance:parseInt(document.getElementById("mt-avance").value)||0,dead:document.getElementById("mt-dead").value||"—",proy:"—",desc:document.getElementById("mt-desc").value.trim(),historial:[{tipo:"Creación",desc:"Creado desde app móvil por "+session.nombre,fecha:ts(),usuario:session.nombre,color:"green"}],fechaCreacion:ts()};
+    tickets.push(t);
+    await apiPost("tickets","insert",t);
+    await apiPost("auditoria","insert",{ts:ts(),usuario:session.username,nombre:session.nombre,rol:session.rol,accion:"CREAR",tipo:"Ticket",codigo:code,detalle:"Creado desde app móvil: "+titulo});
+    showToast("Ticket creado ✓","success");
+  }
+  saveCache();
+  closeModal();
+  renderTickets();
+  renderDashboard();
+}
+
+function closeModal(){
+  document.getElementById("modal-overlay").classList.remove("open");
+  document.getElementById("modal-ticket").classList.remove("open");
+}
+
+// ── INVENTARIO ────────────────────────────────────────────────
+function renderActivos(){
+  const list=document.getElementById("activos-list");
+  let data=activos.filter(a=>a.estado!=="eliminado");
+  if(filtroAct!=="todos") data=data.filter(a=>a.estado===filtroAct);
+  if(!data.length){list.innerHTML=`<div class="empty"><div class="empty-icon">📦</div><div class="empty-title">Sin activos</div></div>`;return;}
+  list.innerHTML=data.map(a=>`
+    <div class="activo-card" onclick="openActivoDetalle('${a.codigo}')">
+      <div class="activo-card-head">
+        <div class="activo-icon">${TIPO_ICON[a.tipo]||"📦"}</div>
+        <div style="flex:1;min-width:0">
+          <div class="activo-name">${a.nombre}</div>
+          <div class="activo-code">${a.codigo}</div>
+        </div>
+        <span class="badge b-${a.estado}">${a.estado}</span>
+      </div>
+      <div class="activo-info">
+        <span>📍 ${a.ubicacion||"—"}</span>
+        <span>👤 ${a.asignado||"—"}</span>
+        ${a.garantia&&a.garantia!=="—"?`<span>🛡️ ${a.garantia}</span>`:""}
+      </div>
+    </div>`).join("");
+}
+
+function filterAct(f,el){
+  filtroAct=f;
+  document.querySelectorAll("#scr-inventario .filter-btn").forEach(b=>b.classList.remove("active"));
+  el.classList.add("active");
+  renderActivos();
+}
+
+function openActivoDetalle(codigo){
+  const a=activos.find(x=>x.codigo===codigo);if(!a)return;
+  activoDetalle=a;
+  document.getElementById("sheet-tkt-title").textContent=a.nombre;
+  document.getElementById("sheet-tkt-code").textContent=`${a.codigo} · ${a.tipo}`;
+  const estadoEl=document.getElementById("sheet-tkt-estado");
+  estadoEl.textContent=a.estado;estadoEl.className=`badge b-${a.estado}`;
+
+  const campos=[["Marca / Modelo",`${a.marca||"—"} ${a.modelo||""}`],["N.° de serie",a.serial||"—"],["Ubicación",a.ubicacion||"—"],["Asignado a",a.asignado||"—"],["Departamento",a.depto||"—"],["Garantía hasta",a.garantia||"—"],["Valor",`$${(a.valor||0).toLocaleString()}`]];
+  const tktsVinculados=tickets.filter(t=>t.activoId===codigo);
+
+  document.getElementById("sheet-body").innerHTML=`
+    <div style="display:flex;gap:10px;margin-bottom:20px">
+      <button class="action-btn" onclick="openMantActivo()"><span class="action-icon">🔧</span><span>Mantenimiento</span></button>
+      <button class="action-btn" onclick="openEditActivoSheet('${codigo}')"><span class="action-icon">✏️</span><span>Editar</span></button>
+    </div>
+    ${campos.map(([l,v])=>`<div class="det-field"><div class="det-field-label">${l}</div><div class="det-field-val">${v}</div></div>`).join("")}
+    <div style="margin-top:16px;font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Tickets vinculados (${tktsVinculados.length})</div>
+    ${tktsVinculados.length?tktsVinculados.map(t=>`<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">
+      <span style="font-family:monospace;font-size:11px;color:var(--text3)">${t.codigo}</span>
+      <span style="flex:1;font-size:13px">${t.titulo}</span>
+      <span class="badge b-${t.estado}">${t.estado}</span>
+    </div>`).join(""):`<div style="font-size:12px;color:var(--text3)">Sin tickets vinculados</div>`}
+    <div style="margin-top:16px;font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Historial (${(a.historial||[]).length})</div>
+    ${(a.historial||[]).map(h=>`<div class="hist-item">
+      <div class="hist-dot ${h.color||"navy"}"></div>
+      <div><div class="hist-tipo">${h.tipo}</div><div class="hist-desc">${h.desc}</div><div class="hist-ts">${h.fecha||""}</div></div>
+    </div>`).join("")||`<div style="font-size:12px;color:var(--text3)">Sin historial</div>`}
+  `;
+  document.getElementById("sheet-overlay").classList.add("open");
+  document.getElementById("ticket-sheet").classList.add("open");
+}
+
+// ── EDITAR ACTIVO ─────────────────────────────────────────────
+function openEditActivoSheet(codigo){
+  // Para simplificar mobile, abrimos el modal de ticket reutilizado para activos
+  // En versión completa se implementaría modal propio
+  showToast("Usa la versión web para editar activos en detalle","");
+}
+
+// ── MANTENIMIENTO ─────────────────────────────────────────────
+function openMantActivo(){
+  document.getElementById("mm-tipo").value="Preventivo";
+  document.getElementById("mm-desc").value="";
+  document.getElementById("mm-fecha").value=new Date().toISOString().slice(0,10);
+  document.getElementById("mm-costo").value="";
+  document.getElementById("mant-overlay").classList.add("open");
+  document.getElementById("modal-mant").classList.add("open");
+}
+
+async function saveMant(){
+  if(!activoDetalle)return;
+  const desc=document.getElementById("mm-desc").value.trim();
+  if(!desc){showToast("La descripción es obligatoria","error");return;}
+  const e={tipo:document.getElementById("mm-tipo").value,desc,fecha:document.getElementById("mm-fecha").value||ts(),tec:session.nombre,costo:parseFloat(document.getElementById("mm-costo").value)||0,usuario:session.nombre,color:"amber"};
+  activoDetalle.historial=activoDetalle.historial||[];
+  activoDetalle.historial.push(e);
+  await apiPost("activos","update",activoDetalle);
+  await apiPost("auditoria","insert",{ts:ts(),usuario:session.username,nombre:session.nombre,rol:session.rol,accion:"CREAR",tipo:"Mantenimiento",codigo:activoDetalle.codigo,detalle:`${e.tipo}: ${e.desc} | App Móvil`});
+  saveCache();
+  showToast("Mantenimiento registrado ✓","success");
+  closeMant();
+  closeSheet();
+  renderActivos();
+}
+
+function closeMant(){
+  document.getElementById("mant-overlay").classList.remove("open");
+  document.getElementById("modal-mant").classList.remove("open");
+}
+
+// ── REPORTES BÁSICOS ──────────────────────────────────────────
+function renderReportes(){
+  const misTkt=tickets.filter(t=>t.resp===session?.nombre&&t.estado!=="eliminado");
+  const cerrados=misTkt.filter(t=>t.estado==="cerrado").length;
+  const pct=misTkt.length?Math.round(cerrados/misTkt.length*100):0;
+  const tipos={};misTkt.forEach(t=>{tipos[t.tipo]=(tipos[t.tipo]||0)+1;});
+  const maxT=Math.max(1,...Object.values(tipos));
+  const priors={urgente:0,importante:0,normal:0};
+  misTkt.forEach(t=>{priors[t.prior]=(priors[t.prior]||0)+1;});
+
+  document.getElementById("reportes-content").innerHTML=`
+    <div class="metrics-grid">
+      <div class="metric-card"><div class="metric-v" style="color:var(--navy)">${misTkt.length}</div><div class="metric-l">Total mis tickets</div></div>
+      <div class="metric-card"><div class="metric-v" style="color:var(--green-m)">${cerrados}</div><div class="metric-l">Cerrados</div></div>
+      <div class="metric-card"><div class="metric-v" style="color:var(--amber-m)">${misTkt.length-cerrados}</div><div class="metric-l">Pendientes</div></div>
+      <div class="metric-card"><div class="metric-v" style="color:var(--navy)">${pct}%</div><div class="metric-l">Cumplimiento</div></div>
+    </div>
+    <div class="section-title">Por tipo</div>
+    <div class="card"><div class="card-body">
+      ${Object.entries(tipos).map(([tipo,cnt])=>`<div class="bar-item">
+        <span class="bar-lbl">${tipo}</span>
+        <div class="bar-bg"><div class="bar-fill" style="width:${Math.round(cnt/maxT*100)}%"></div></div>
+        <span class="bar-val">${cnt}</span>
+      </div>`).join("")||`<div style="font-size:12px;color:var(--text3)">Sin datos</div>`}
+    </div></div>
+    <div class="section-title">Por prioridad</div>
+    <div class="metrics-grid">
+      <div class="metric-card"><div class="metric-v" style="color:var(--red-m)">${priors.urgente}</div><div class="metric-l">Urgentes</div></div>
+      <div class="metric-card"><div class="metric-v" style="color:var(--amber-m)">${priors.importante}</div><div class="metric-l">Importantes</div></div>
+      <div class="metric-card"><div class="metric-v" style="color:var(--green-m)">${priors.normal}</div><div class="metric-l">Normales</div></div>
+      <div class="metric-card"><div class="metric-v" style="color:#185FA5">${Math.round(misTkt.reduce((s,t)=>s+(t.avance||0),0)/(misTkt.length||1))}%</div><div class="metric-l">Avance prom.</div></div>
+    </div>
+    <div style="height:24px"></div>
+  `;
+}
+
+// ── ONLINE / OFFLINE ──────────────────────────────────────────
+window.addEventListener("online",()=>{
+  document.getElementById("offline-banner").classList.remove("show");
+  setSyncStatus(true);
+  loadData().then(()=>{renderDashboard();renderTickets();renderActivos();renderReportes();});
+});
+window.addEventListener("offline",()=>{
+  document.getElementById("offline-banner").classList.add("show");
+  setSyncStatus(false);
+});
+
+// ── SERVICE WORKER ────────────────────────────────────────────
+if("serviceWorker" in navigator){
+  navigator.serviceWorker.register("sw.js").then(reg=>{
+    console.log("SW registrado:",reg.scope);
+  }).catch(err=>console.log("SW error:",err));
+}
+
+// ── NOTIFICACIONES PUSH ───────────────────────────────────────
+async function solicitarNotificaciones(){
+  if(!("Notification" in window))return;
+  const perm=await Notification.requestPermission();
+  if(perm==="granted"){
+    showToast("Notificaciones activadas ✓","success");
+    verificarDeadlinesMobile();
+  }
+}
+
+function verificarDeadlinesMobile(){
+  const hoy=new Date();
+  tickets.filter(t=>{
+    if(!t.dead||t.dead==="—"||t.estado==="cerrado")return false;
+    if(session?.rol==="tecnico"&&t.resp!==session.nombre)return false;
+    const dias=(new Date(t.dead)-hoy)/(24*3600*1000);
+    return dias>=0&&dias<=3;
+  }).forEach(t=>{
+    const dias=Math.ceil((new Date(t.dead)-hoy)/(24*3600*1000));
+    new Notification("SAGA — Deadline próximo",{body:`${t.codigo}: ${t.titulo} vence ${dias===0?"hoy":"en "+dias+" días"}`,icon:"icons/icon-192.png",badge:"icons/icon-96.png"});
+  });
+}
+
+// ── INIT ──────────────────────────────────────────────────────
+document.addEventListener("DOMContentLoaded",()=>{
+  // Fecha en dashboard
+  document.getElementById("dash-fecha").textContent=new Date().toLocaleDateString("es-PA",{weekday:"long",day:"numeric",month:"long"});
+  initApp().catch(err=>{
+    console.error(err);
+    // Si falla carga, intentar con caché
+    document.getElementById("splash").classList.add("hide");
+    setTimeout(()=>document.getElementById("splash").style.display="none",400);
+    document.getElementById("login-screen").style.display="flex";
+    document.getElementById("offline-banner").classList.add("show");
+  });
+  // Solicitar notificaciones después del login
+  setTimeout(solicitarNotificaciones, 3000);
+});
+</script>
+</body>
+</html>
 
