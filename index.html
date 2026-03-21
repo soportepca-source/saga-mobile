@@ -290,6 +290,12 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
   <!-- TOP BAR -->
   <div class="topbar">
     <div class="topbar-logo">SAGA</div>
+    <div class="search-bar-wrap" id="search-bar-wrap" style="display:none">
+      <span class="search-bar-icon">🔍</span>
+      <input class="search-bar-input" id="mobile-search" placeholder="Buscar..." 
+        oninput="mobileSearch(this.value)" onblur="setTimeout(()=>closeMobileSearch(),200)">
+      <div class="search-results-mobile" id="mobile-search-results"></div>
+    </div>
     <div class="sync-indicator" id="sync-dot"></div>
     <div class="topbar-avatar" id="top-avatar">?</div>
   </div>
@@ -510,6 +516,34 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
 </div>
 
 <!-- TOAST -->
+
+<!-- PANTALLA CAMBIO DE CONTRASEÑA FORZADO -->
+<div id="force-pass-screen">
+  <div class="force-pass-card">
+    <div class="force-pass-icon">🔐</div>
+    <div class="force-pass-title">Crea tu contraseña</div>
+    <div class="force-pass-sub">Esta es tu primera sesión. Debes crear una contraseña personal antes de continuar. No podrás saltarte este paso.</div>
+    <div class="force-pass-err" id="fp-err"></div>
+    <div class="form-group">
+      <label class="form-label">Nueva contraseña *</label>
+      <div class="pass-wrap">
+        <input class="form-input" type="password" id="fp-pass1" placeholder="Mínimo 8 caracteres" oninput="checkPassStrength(this.value)">
+        <button class="pass-toggle" onclick="togglePass('fp-pass1',this)" type="button">👁</button>
+      </div>
+      <div class="strength-bar" id="fp-strength-bar"></div>
+      <div class="strength-label" id="fp-strength-label"></div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Confirmar contraseña *</label>
+      <div class="pass-wrap">
+        <input class="form-input" type="password" id="fp-pass2" placeholder="Repite tu contraseña">
+        <button class="pass-toggle" onclick="togglePass('fp-pass2',this)" type="button">👁</button>
+      </div>
+    </div>
+    <button class="btn-primary" onclick="saveForcePass()">Guardar mi contraseña</button>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -673,11 +707,19 @@ function doLogin(){
     err.style.display="block";return;
   }
   session={username:u,nombre:usuario.nombre,rol:usuario.rol,data:usuario};
-  apiPost("usuarios","update",{...usuario,ultimoAcceso:ts()});
   apiPost("auditoria","insert",{ts:ts(),usuario:u,nombre:usuario.nombre,rol:usuario.rol,accion:"LOGIN",tipo:"Sistema",codigo:"MOBILE",detalle:"Acceso desde app móvil SAGA"});
+  // Verificar si debe cambiar contraseña
+  const mustChange = usuario.mustChange === true || usuario.mustChange === "true" || usuario.mustChange === "TRUE";
+  if(mustChange){
+    document.getElementById("login-screen").style.display="none";
+    document.getElementById("force-pass-screen").style.display="flex";
+    return;
+  }
+  apiPost("usuarios","update",{...usuario,ultimoAcceso:ts()});
   document.getElementById("login-screen").style.display="none";
   document.getElementById("app").classList.add("visible");
   document.getElementById("top-avatar").textContent=initials(usuario.nombre);
+  document.getElementById("search-bar-wrap").style.display="flex";
   renderDashboard();
   renderTickets();
   renderActivos();
@@ -1111,6 +1153,143 @@ function renderReportes(){
   `;
 }
 
+
+// ══════════════════════════════════════════════════════════════════
+// BUSCADOR GLOBAL MÓVIL
+// ══════════════════════════════════════════════════════════════════
+function mobileSearch(q){
+  const res=document.getElementById("mobile-search-results");
+  q=q.trim();
+  if(!q||q.length<2){res.classList.remove("open");return;}
+
+  const matchTickets=tickets.filter(t=>
+    t.codigo?.toLowerCase().includes(q.toLowerCase())||
+    t.titulo?.toLowerCase().includes(q.toLowerCase())||
+    t.resp?.toLowerCase().includes(q.toLowerCase())||
+    t.activoNombre?.toLowerCase().includes(q.toLowerCase())
+  ).slice(0,4);
+
+  const matchActivos=activos.filter(a=>
+    a.codigo?.toLowerCase().includes(q.toLowerCase())||
+    a.nombre?.toLowerCase().includes(q.toLowerCase())||
+    a.serial?.toLowerCase().includes(q.toLowerCase())||
+    a.asignado?.toLowerCase().includes(q.toLowerCase())
+  ).slice(0,4);
+
+  if(!matchTickets.length&&!matchActivos.length){
+    res.innerHTML=`<div class="sr-empty-m">Sin resultados para "${q}"</div>`;
+    res.classList.add("open");return;
+  }
+
+  let html="";
+  if(matchTickets.length){
+    html+=`<div class="sr-group-m">🎫 Tickets</div>`;
+    html+=matchTickets.map(t=>`
+      <div class="sr-item-m" onclick="searchGoTicketM('${t.codigo}')">
+        <span class="sr-code-m">${t.codigo}</span>
+        <span class="sr-name-m">${t.titulo}</span>
+        <span class="badge b-${t.estado}" style="font-size:9px">${t.estado}</span>
+      </div>`).join("");
+  }
+  if(matchActivos.length){
+    html+=`<div class="sr-group-m">📦 Activos</div>`;
+    html+=matchActivos.map(a=>`
+      <div class="sr-item-m" onclick="searchGoActivoM('${a.codigo}')">
+        <span class="sr-code-m">${a.codigo}</span>
+        <span class="sr-name-m">${a.nombre}</span>
+        <span class="badge b-${a.estado}" style="font-size:9px">${a.estado}</span>
+      </div>`).join("");
+  }
+  res.innerHTML=html;
+  res.classList.add("open");
+}
+
+function closeMobileSearch(){
+  document.getElementById("mobile-search-results").classList.remove("open");
+  document.getElementById("mobile-search").value="";
+}
+
+function searchGoTicketM(codigo){
+  closeMobileSearch();
+  goScreen("tickets",document.getElementById("nav-tickets"));
+  filtroTkt="todos";
+  document.querySelectorAll("#tkt-filters .filter-btn").forEach(b=>b.classList.remove("active"));
+  document.querySelector("#tkt-filters .filter-btn")?.classList.add("on");
+  renderTickets();
+  setTimeout(()=>{
+    const cards=document.querySelectorAll("#tickets-list .tkt-card");
+    cards.forEach(card=>{
+      if(card.innerHTML.includes(codigo)){
+        card.style.background="#E8F0FB";
+        card.scrollIntoView({behavior:"smooth",block:"center"});
+        setTimeout(()=>card.style.background="",2500);
+      }
+    });
+  },200);
+}
+
+function searchGoActivoM(codigo){
+  closeMobileSearch();
+  goScreen("inventario",document.getElementById("nav-inventario"));
+  setTimeout(()=>openActivoDetalle(codigo),200);
+}
+
+// ══════════════════════════════════════════════════════════════════
+// CAMBIO DE CONTRASEÑA FORZADO (mustChange)
+// ══════════════════════════════════════════════════════════════════
+function checkPassStrength(p){
+  const bar=document.getElementById("fp-strength-bar");
+  const lbl=document.getElementById("fp-strength-label");
+  if(!bar)return;
+  let score=0;
+  if(p.length>=8)score++;
+  if(p.length>=12)score++;
+  if(/[A-Z]/.test(p))score++;
+  if(/[0-9]/.test(p))score++;
+  if(/[^A-Za-z0-9]/.test(p))score++;
+  const levels=[
+    {color:"#D85A30",label:"Muy débil"},
+    {color:"#BA7517",label:"Débil"},
+    {color:"#B8960C",label:"Regular"},
+    {color:"#1D9E75",label:"Buena"},
+    {color:"#085041",label:"Excelente"},
+  ];
+  const lvl=levels[Math.min(score,4)];
+  bar.style.background=lvl.color;
+  bar.style.width=((score+1)/5*100)+"%";
+  lbl.textContent=lvl.label;
+  lbl.style.color=lvl.color;
+}
+
+async function saveForcePass(){
+  const p1=document.getElementById("fp-pass1").value;
+  const p2=document.getElementById("fp-pass2").value;
+  const err=document.getElementById("fp-err");
+  err.style.display="none";
+  if(!p1||p1.length<8){err.textContent="La contraseña debe tener mínimo 8 caracteres.";err.style.display="block";return;}
+  if(p1!==p2){err.textContent="Las contraseñas no coinciden.";err.style.display="block";return;}
+  // Guardar nueva contraseña
+  const usuario=session.data;
+  usuario.passHash=hashPass(p1);
+  usuario.mustChange=false;
+  usuario.ultimoAcceso=ts();
+  await apiPost("usuarios","update",usuario);
+  // Actualizar en memoria
+  const idx=usuarios.findIndex(x=>x.username===session.username);
+  if(idx>=0){usuarios[idx]=usuario;}
+  session.data=usuario;
+  await apiPost("auditoria","insert",{ts:ts(),usuario:session.username,nombre:session.nombre,rol:session.rol,accion:"EDITAR",tipo:"Usuario",codigo:session.username,detalle:"Cambio de contraseña forzado al primer acceso — App Móvil"});
+  saveCache();
+  // Mostrar la app
+  document.getElementById("force-pass-screen").style.display="none";
+  document.getElementById("app").classList.add("visible");
+  document.getElementById("top-avatar").textContent=initials(session.nombre);
+  document.getElementById("search-bar-wrap").style.display="flex";
+  renderDashboard();renderTickets();renderActivos();renderReportes();updateBadge();
+  showToast("¡Contraseña creada exitosamente! ✓","success");
+  apiPost("usuarios","update",{...usuario,ultimoAcceso:ts()});
+}
+
 // ── ONLINE / OFFLINE ──────────────────────────────────────────
 window.addEventListener("online",()=>{
   document.getElementById("offline-banner").classList.remove("show");
@@ -1175,6 +1354,7 @@ document.addEventListener("DOMContentLoaded",()=>{
 </script>
 </body>
 </html>
+
 
 
 
