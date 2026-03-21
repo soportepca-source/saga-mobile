@@ -247,16 +247,6 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
 /* ── OFFLINE BANNER ───────────────────────────────────────────── */
 .offline-banner{background:var(--amber-l);border-bottom:1px solid var(--amber-m);padding:8px 16px;font-size:12px;color:var(--amber);font-weight:500;text-align:center;display:none;}
 .offline-banner.show{display:block;}
-/* ── MENÚ USUARIO — FLOTANTE ─────────────────────────────────────── */
-#user-menu-overlay{position:fixed;top:0;left:0;right:0;bottom:0;z-index:300;display:none;background:transparent;}
-#user-menu-overlay.open{display:block;}
-#user-menu{position:fixed;top:60px;right:8px;background:#fff;border-radius:var(--r-lg);box-shadow:0 8px 40px rgba(0,0,0,.25);z-index:301;min-width:220px;overflow:hidden;display:none;}
-#user-menu.open{display:block;}
-
-/* ── PANTALLA BÚSQUEDA — CUBRE TODA LA PANTALLA ─────────────────── */
-#search-screen{position:fixed;top:0;left:0;right:0;bottom:0;background:#fff;z-index:500;display:none;flex-direction:column;}
-#search-screen.open{display:flex;}
-
 </style>
 </head>
 <body>
@@ -301,50 +291,24 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
   <div class="topbar">
     <div class="topbar-logo">SAGA</div>
     <div style="flex:1"></div>
-    <button class="topbar-icon-btn" id="search-btn" onclick="openSearchScreen()" style="display:none" title="Buscar">🔍</button>
-    <div class="sync-indicator" id="sync-dot" style="margin:0 6px"></div>
-    <button class="topbar-icon-btn" id="top-avatar-btn" onclick="toggleUserMenu()" style="display:none;background:rgba(255,255,255,.15);font-size:14px;font-weight:700;color:#fff;" title="Mi cuenta">?</button>
+    <div class="sync-indicator" id="sync-dot" style="margin-right:10px"></div>
+    <div class="topbar-avatar" id="top-avatar" onclick="toggleUserMenu()" style="cursor:pointer" title="Mi cuenta">?</div>
   </div>
 
-  <!-- MENÚ DE USUARIO -->
-  <div id="user-menu-overlay" onclick="closeUserMenu()"></div>
-  <div id="user-menu">
-    <div class="user-menu-header">
-      <div class="user-menu-name" id="um-name">—</div>
-      <div class="user-menu-role" id="um-role">—</div>
+  <!-- MENÚ DE USUARIO FLOTANTE -->
+  <div id="user-menu-overlay" onclick="closeUserMenu()" style="display:none;position:fixed;inset:0;z-index:300;"></div>
+  <div id="user-menu" style="display:none;position:fixed;top:60px;right:8px;background:#fff;border-radius:16px;box-shadow:0 8px 40px rgba(0,0,0,.22);z-index:301;min-width:230px;overflow:hidden;">
+    <div style="padding:16px;background:var(--navy-l);border-bottom:1px solid var(--border);">
+      <div style="font-size:14px;font-weight:700;color:var(--navy-d)" id="um-name">—</div>
+      <div style="font-size:12px;color:var(--text3);margin-top:2px" id="um-role">—</div>
     </div>
-    <div class="user-menu-item" onclick="goToProfile()">
-      <span class="user-menu-item-icon">👤</span>
-      <span class="user-menu-item-label">Mi perfil</span>
+    <div style="display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--border);cursor:pointer;" onclick="closeUserMenu();showToast('Edita tu perfil desde la versión web','')">
+      <span style="font-size:18px">👤</span>
+      <span style="font-size:14px;color:var(--text)">Mi perfil</span>
     </div>
-    <div class="user-menu-item user-menu-logout" onclick="confirmLogout()">
-      <span class="user-menu-item-icon">🚪</span>
-      <span class="user-menu-item-label">Cerrar sesión</span>
-    </div>
-  </div>
-
-  <!-- PANTALLA DE BÚSQUEDA COMPLETA -->
-  <div id="search-screen">
-    <div class="search-screen-top">
-      <button class="search-back-btn" onclick="closeSearchScreen()">←</button>
-      <div class="search-input-wrap">
-        <span class="search-input-icon">🔍</span>
-        <input class="search-main-input" id="search-screen-input"
-          placeholder="Buscar tickets, activos, códigos..."
-          oninput="doMobileSearch(this.value)"
-          autocomplete="off" autocorrect="off" autocapitalize="off">
-        <button class="search-clear-btn" id="search-clear-btn" onclick="clearSearch()">✕</button>
-      </div>
-    </div>
-    <div class="search-screen-body" id="search-screen-body">
-      <div class="sr-initial">
-        <div class="sr-initial-title">Puedes buscar por:</div>
-        <div class="sr-suggestion"><span class="sr-sug-icon">🎫</span><span class="sr-sug-text">Código de ticket — ej: TKT-0001</span></div>
-        <div class="sr-suggestion"><span class="sr-sug-icon">📦</span><span class="sr-sug-text">Código de activo — ej: ACT-0015</span></div>
-        <div class="sr-suggestion"><span class="sr-sug-icon">🔤</span><span class="sr-sug-text">Nombre del equipo o título del ticket</span></div>
-        <div class="sr-suggestion"><span class="sr-sug-icon">👤</span><span class="sr-sug-text">Nombre del responsable</span></div>
-        <div class="sr-suggestion"><span class="sr-sug-icon">📍</span><span class="sr-sug-text">Ubicación del activo</span></div>
-      </div>
+    <div style="display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;" onclick="confirmLogout()">
+      <span style="font-size:18px">🚪</span>
+      <span style="font-size:14px;font-weight:600;color:var(--red)">Cerrar sesión</span>
     </div>
   </div>
 
@@ -766,11 +730,10 @@ function doLogin(){
   apiPost("usuarios","update",{...usuario,ultimoAcceso:ts()});
   document.getElementById("login-screen").style.display="none";
   document.getElementById("app").classList.add("visible");
-  document.getElementById("top-avatar-btn").textContent=initials(usuario.nombre);
-  document.getElementById("top-avatar-btn").style.display="flex";
+  document.getElementById("top-avatar").textContent=initials(usuario.nombre);
   document.getElementById("um-name").textContent=usuario.nombre;
   document.getElementById("um-role").textContent=usuario.rol==="admin"?"Administrador":"Técnico";
-  document.getElementById("search-btn").style.display="block";
+  
   renderDashboard();
   renderTickets();
   renderActivos();
@@ -1033,7 +996,9 @@ async function saveTicket(){
     if(!motivo){showToast("El motivo es obligatorio","error");return;}
     const t=tickets.find(x=>x.codigo===editId);if(!t)return;
     const estadoAntes=t.estado;
+    const respAntes=t.resp;
     t.titulo=titulo;
+    t.resp=document.getElementById("mt-resp")?.value||t.resp;
     t.tipo=document.getElementById("mt-tipo").value;
     t.prior=document.getElementById("mt-prior").value;
     t.estado=document.getElementById("mt-estado").value;
@@ -1041,7 +1006,8 @@ async function saveTicket(){
     t.dead=document.getElementById("mt-dead").value||"—";
     t.desc=document.getElementById("mt-desc").value.trim();
     t.historial=t.historial||[];
-    t.historial.push({tipo:"Edición",desc:`Motivo: ${motivo}. Estado: ${estadoAntes}→${t.estado}`,fecha:ts(),usuario:session.nombre,color:"amber"});
+    const cambioResp = respAntes !== t.resp ? ` Responsable: ${respAntes}→${t.resp}.` : "";
+    t.historial.push({tipo:"Edición",desc:`Motivo: ${motivo}. Estado: ${estadoAntes}→${t.estado}.${cambioResp}`,fecha:ts(),usuario:session.nombre,color:"amber"});
     await apiPost("tickets","update",t);
     await apiPost("auditoria","insert",{ts:ts(),usuario:session.username,nombre:session.nombre,rol:session.rol,accion:"EDITAR",tipo:"Ticket",codigo:t.codigo,detalle:`Motivo: ${motivo} | App Móvil`});
     showToast("Ticket actualizado ✓","success");
@@ -1049,7 +1015,8 @@ async function saveTicket(){
     const code=genCode("TKT",cntTickets++);
     const aId=document.getElementById("mt-activo").value;
     const aNom=aId?(activos.find(a=>a.codigo===aId)||{nombre:"—"}).nombre:"—";
-    const t={id:code,codigo:code,titulo,activoId:aId||"",activoNombre:aNom,resp:session.nombre,tipo:document.getElementById("mt-tipo").value,prior:document.getElementById("mt-prior").value,estado:document.getElementById("mt-estado").value,avance:parseInt(document.getElementById("mt-avance").value)||0,dead:document.getElementById("mt-dead").value||"—",proy:"—",desc:document.getElementById("mt-desc").value.trim(),historial:[{tipo:"Creación",desc:"Creado desde app móvil por "+session.nombre,fecha:ts(),usuario:session.nombre,color:"green"}],fechaCreacion:ts()};
+    const respSelected = document.getElementById("mt-resp")?.value || session.nombre;
+    const t={id:code,codigo:code,titulo,activoId:aId||"",activoNombre:aNom,resp:respSelected,tipo:document.getElementById("mt-tipo").value,prior:document.getElementById("mt-prior").value,estado:document.getElementById("mt-estado").value,avance:parseInt(document.getElementById("mt-avance").value)||0,dead:document.getElementById("mt-dead").value||"—",proy:"—",desc:document.getElementById("mt-desc").value.trim(),historial:[{tipo:"Creación",desc:"Creado desde app móvil por "+session.nombre,fecha:ts(),usuario:session.nombre,color:"green"}],fechaCreacion:ts()};
     tickets.push(t);
     await apiPost("tickets","insert",t);
     await apiPost("auditoria","insert",{ts:ts(),usuario:session.username,nombre:session.nombre,rol:session.rol,accion:"CREAR",tipo:"Ticket",codigo:code,detalle:"Creado desde app móvil: "+titulo});
@@ -1246,8 +1213,7 @@ function doLogout(){
   // Limpiar sesión
   session = null;
   // Ocultar botones del topbar
-  document.getElementById("top-avatar-btn").style.display="none";
-  document.getElementById("search-btn").style.display="none";
+  
   // Mostrar login
   document.getElementById("app").classList.remove("visible");
   document.getElementById("login-screen").style.display="flex";
@@ -1258,141 +1224,6 @@ function doLogout(){
   // Volver al dashboard para la próxima sesión
   goScreen("dashboard", document.getElementById("nav-dashboard"));
   showToast("Sesión cerrada","");
-}
-
-// ══════════════════════════════════════════════════════════════════
-// BUSCADOR GLOBAL MÓVIL — PANTALLA COMPLETA
-// ══════════════════════════════════════════════════════════════════
-function openSearchScreen(){
-  const screen = document.getElementById("search-screen");
-  const input = document.getElementById("search-screen-input");
-  screen.classList.add("open");
-  input.value = "";
-  document.getElementById("search-clear-btn").style.display="none";
-  resetSearchBody();
-  setTimeout(()=>input.focus(), 150);
-}
-
-function resetSearchBody(){
-  document.getElementById("search-screen-body").innerHTML = `
-    <div class="sr-initial">
-      <div class="sr-initial-title">Puedes buscar por:</div>
-      <div class="sr-suggestion"><span class="sr-sug-icon">🎫</span><span class="sr-sug-text">Código de ticket — ej: TKT-0001</span></div>
-      <div class="sr-suggestion"><span class="sr-sug-icon">📦</span><span class="sr-sug-text">Código de activo — ej: ACT-0015</span></div>
-      <div class="sr-suggestion"><span class="sr-sug-icon">🔤</span><span class="sr-sug-text">Nombre del equipo o título del ticket</span></div>
-      <div class="sr-suggestion"><span class="sr-sug-icon">👤</span><span class="sr-sug-text">Nombre del responsable</span></div>
-      <div class="sr-suggestion"><span class="sr-sug-icon">📍</span><span class="sr-sug-text">Ubicación del activo</span></div>
-    </div>`;
-}
-
-function clearSearch(){
-  const input = document.getElementById("search-screen-input");
-  input.value = "";
-  input.focus();
-  document.getElementById("search-clear-btn").style.display="none";
-  resetSearchBody();
-}
-
-function closeSearchScreen(){
-  document.getElementById("search-screen").classList.remove("open");
-  document.getElementById("search-screen-input").blur();
-}
-
-function doMobileSearch(q){
-  const body = document.getElementById("search-screen-body");
-  const clearBtn = document.getElementById("search-clear-btn");
-  clearBtn.style.display = q.length > 0 ? "block" : "none";
-
-  if(!q || q.trim().length < 2){
-    if(!q) resetSearchBody();
-    return;
-  }
-  q = q.trim();
-
-  const ql = q.toLowerCase();
-
-  // Buscar en tickets
-  const matchTickets = tickets.filter(t =>
-    t.estado !== "eliminado" && (
-      t.codigo?.toLowerCase().includes(ql) ||
-      t.titulo?.toLowerCase().includes(ql) ||
-      t.resp?.toLowerCase().includes(ql) ||
-      t.activoNombre?.toLowerCase().includes(ql) ||
-      t.desc?.toLowerCase().includes(ql)
-    )
-  ).slice(0, 6);
-
-  // Buscar en activos
-  const matchActivos = activos.filter(a =>
-    a.estado !== "eliminado" && (
-      a.codigo?.toLowerCase().includes(ql) ||
-      a.nombre?.toLowerCase().includes(ql) ||
-      a.serial?.toLowerCase().includes(ql) ||
-      a.asignado?.toLowerCase().includes(ql) ||
-      a.ubicacion?.toLowerCase().includes(ql)
-    )
-  ).slice(0, 6);
-
-  if(!matchTickets.length && !matchActivos.length){
-    body.innerHTML = `
-      <div class="sr-empty-state">
-        <div class="sr-empty-icon">🔍</div>
-        <div class="sr-empty-title">Sin resultados</div>
-        <div class="sr-empty-sub">No se encontró nada para<br><strong>"${q}"</strong></div>
-      </div>`;
-    return;
-  }
-
-  let html = "";
-
-  if(matchTickets.length){
-    html += `<div class="sr-section-title">🎫 Tickets (${matchTickets.length})</div>`;
-    html += matchTickets.map(t => `
-      <div class="sr-result-item" onclick="searchSelectTicket('${t.codigo}')">
-        <div class="sr-result-icon">🎫</div>
-        <div class="sr-result-main">
-          <div class="sr-result-title">${t.titulo}</div>
-          <div class="sr-result-sub">${t.codigo} · ${t.resp || "—"} · ${t.dead && t.dead !== "—" ? "📅 "+t.dead : ""}</div>
-        </div>
-        <div class="sr-result-badge">
-          <span class="badge b-${t.estado}">${t.estado}</span>
-        </div>
-      </div>`).join("");
-  }
-
-  if(matchActivos.length){
-    html += `<div class="sr-section-title">📦 Activos (${matchActivos.length})</div>`;
-    html += matchActivos.map(a => `
-      <div class="sr-result-item" onclick="searchSelectActivo('${a.codigo}')">
-        <div class="sr-result-icon">${TIPO_ICON[a.tipo]||"📦"}</div>
-        <div class="sr-result-main">
-          <div class="sr-result-title">${a.nombre}</div>
-          <div class="sr-result-sub">${a.codigo} · ${a.ubicacion || "—"} · ${a.asignado || "—"}</div>
-        </div>
-        <div class="sr-result-badge">
-          <span class="badge b-${a.estado}">${a.estado}</span>
-        </div>
-      </div>`).join("");
-  }
-
-  body.innerHTML = html;
-}
-
-function searchSelectTicket(codigo){
-  closeSearchScreen();
-  goScreen("tickets", document.getElementById("nav-tickets"));
-  filtroTkt = "todos";
-  document.querySelectorAll("#tkt-filters .filter-btn").forEach(b=>b.classList.remove("active"));
-  document.querySelector("#tkt-filters .filter-btn")?.classList.add("active");
-  renderTickets();
-  // Abrir detalle directamente
-  setTimeout(()=>openTicketSheet(codigo), 300);
-}
-
-function searchSelectActivo(codigo){
-  closeSearchScreen();
-  goScreen("inventario", document.getElementById("nav-inventario"));
-  setTimeout(()=>openActivoDetalle(codigo), 300);
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -1448,7 +1279,7 @@ async function saveForcePass(){
   document.getElementById("top-avatar-btn").style.display="flex";
   document.getElementById("um-name").textContent=session.nombre;
   document.getElementById("um-role").textContent=session.rol==="admin"?"Administrador":"Técnico";
-  document.getElementById("search-btn").style.display="block";
+  
   renderDashboard();renderTickets();renderActivos();renderReportes();updateBadge();
   showToast("¡Contraseña creada exitosamente! ✓","success");
   apiPost("usuarios","update",{...usuario,ultimoAcceso:ts()});
@@ -1518,6 +1349,7 @@ document.addEventListener("DOMContentLoaded",()=>{
 </script>
 </body>
 </html>
+
 
 
 
