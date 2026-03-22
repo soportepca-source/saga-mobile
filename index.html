@@ -570,7 +570,17 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
 // ══════════════════════════════════════════════════════════════════
 const API = "https://script.google.com/macros/s/AKfycbxl0l0Y45cy0bbyi7xCVb5e-i4gh2aZfJQLnmFwCiLru002-hTAJ9ljWvmDh5WfiZShxQ/exec";
 const CACHE_KEY = "saga_mobile_cache";
-const TIPO_ICON = {Computadora:"🖥️",Laptop:"💻",Impresora:"🖨️",Servidor:"🗄️","Red / Switch":"🔌",Móvil:"📱",Tablet:"📱",Monitor:"🖥️",Software:"💿",Vehículo:"🚗",Otro:"📦"};
+const TIPO_ICON = {
+  Computadora:"🖥️", Laptop:"💻", Tablet:"📱", Móvil:"📱", Monitor:"🖥️",
+  Impresora:"🖨️", Escáner:"🖨️", "Lector de Código de Barras":"📷",
+  Servidor:"🗄️", Router:"🔀", "Switch / Hub":"🔌", "Access Point":"📡",
+  "Antena WiFi":"📡", Firewall:"🛡️", "Cableado / Patch Panel":"🔌",
+  Cámara:"📹", NVR:"📼",
+  Proyector:"📽️", Televisor:"📺", "Bocina / Audio":"🔊",
+  UPS:"🔋", Regulador:"⚡",
+  "Teléfono IP":"☎️",
+  "Red / Switch":"🔌", Software:"💿", Vehículo:"🚗", Otro:"📦"
+};
 
 let session = null;
 let tickets = [], activos = [], usuarios = [];
@@ -1373,6 +1383,7 @@ document.addEventListener("DOMContentLoaded",()=>{
 </script>
 </body>
 </html>
+
 
 
 
