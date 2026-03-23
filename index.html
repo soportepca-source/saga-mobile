@@ -3,7 +3,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self' https://script.google.com; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://script.google.com;">
+  <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; script-src * 'unsafe-inline' 'unsafe-eval'; style-src * 'unsafe-inline'; img-src * data: blob:; connect-src *; font-src * data:;">
   <meta http-equiv="X-Content-Type-Options" content="nosniff">
   <meta http-equiv="X-Frame-Options" content="SAMEORIGIN">
   <meta name="referrer" content="strict-origin-when-cross-origin">
@@ -1069,7 +1069,14 @@ async function saveTicket(){
     await apiPost("auditoria","insert",{ts:ts(),usuario:session.username,nombre:session.nombre,rol:session.rol,accion:"EDITAR",tipo:"Ticket",codigo:t.codigo,detalle:`Motivo: ${motivo} | App Móvil`});
     showToast("Ticket actualizado ✓","success");
   } else {
-    const code=genCode("TKT",cntTickets++);
+    // Consultar Sheets en tiempo real para el consecutivo real
+    let cntRealM = 0;
+    try{
+      const _rm = await apiGet("tickets");
+      cntRealM = Array.isArray(_rm) ? _rm.length : cntTickets;
+      if(cntRealM >= cntTickets) cntTickets = cntRealM;
+    }catch(e){ cntRealM = cntTickets; }
+    const code=genCode("TKT",cntRealM);cntTickets=cntRealM+1;
     const aId=document.getElementById("mt-activo").value;
     const aNom=aId?(activos.find(a=>a.codigo===aId)||{nombre:"—"}).nombre:"—";
     const respSelected = document.getElementById("mt-resp")?.value || session.nombre;
@@ -1411,6 +1418,7 @@ document.addEventListener("DOMContentLoaded",()=>{
 </script>
 </body>
 </html>
+
 
 
 
