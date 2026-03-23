@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self' https://script.google.com; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://script.google.com;">
+  <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; script-src * 'unsafe-inline' 'unsafe-eval'; style-src * 'unsafe-inline'; img-src * data: blob:; connect-src *; font-src * data:;">
   <meta http-equiv="X-Content-Type-Options" content="nosniff">
   <meta http-equiv="X-Frame-Options" content="SAMEORIGIN">
   <meta name="referrer" content="strict-origin-when-cross-origin">
@@ -309,11 +309,19 @@ function hideError(){
 }
 
 async function getCantTickets(){
-  try{
-    const r = await fetch(API+"?sheet=tickets",{mode:"cors"});
-    const d = await r.json();
-    return Array.isArray(d) ? d.length : 0;
-  }catch(e){ return 0; }
+  // Intentar hasta 3 veces para evitar duplicados por error de red
+  for(let intento=0; intento<3; intento++){
+    try{
+      const r = await fetch(API+"?sheet=tickets&t="+Date.now(),{mode:"cors"});
+      if(!r.ok) continue;
+      const d = await r.json();
+      if(Array.isArray(d)) return d.length;
+    }catch(e){
+      if(intento===2) return cntTickets; // fallback al local en último intento
+      await new Promise(res=>setTimeout(res,500)); // esperar 500ms antes de reintentar
+    }
+  }
+  return cntTickets;
 }
 
 async function enviarReporte(){
@@ -445,3 +453,4 @@ function sanitizeHTML(str){
 </script>
 </body>
 </html>
+
