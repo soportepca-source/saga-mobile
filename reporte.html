@@ -2,6 +2,10 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' https://script.google.com; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://script.google.com;">
+  <meta http-equiv="X-Content-Type-Options" content="nosniff">
+  <meta http-equiv="X-Frame-Options" content="SAMEORIGIN">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="theme-color" content="#1B3A6B">
 <title>SAGA — Reportar un problema</title>
@@ -251,6 +255,23 @@ input[type="radio"].priority-radio{display:none;}
 </div>
 
 <script>
+
+// ── Rate limiting — máximo 3 reportes por sesión cada 5 min ──────
+const _reportLimiter = {count:0, resetTime:0};
+function checkReportLimit(){
+  const now = Date.now();
+  if(now > _reportLimiter.resetTime){
+    _reportLimiter.count = 0;
+    _reportLimiter.resetTime = now + 5*60*1000;
+  }
+  if(_reportLimiter.count >= 3){
+    const mins = Math.ceil((_reportLimiter.resetTime - now)/60000);
+    return `⛔ Máximo 3 reportes por sesión. Espera ${mins} min antes de enviar otro.`;
+  }
+  _reportLimiter.count++;
+  return null;
+}
+
 // ── CONFIG ────────────────────────────────────────────────────────
 const API = "https://script.google.com/macros/s/AKfycbxl0l0Y45cy0bbyi7xCVb5e-i4gh2aZfJQLnmFwCiLru002-hTAJ9ljWvmDh5WfiZShxQ/exec";
 
@@ -415,6 +436,11 @@ function nuevoReporte(){
   document.getElementById("f-desc").value = "";
   selectPriority("normal");
   window.scrollTo({top:0,behavior:"smooth"});
+}
+
+function sanitizeHTML(str){
+  if(!str) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
 }
 </script>
 </body>
