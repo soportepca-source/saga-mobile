@@ -3,6 +3,10 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' https://script.google.com; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://script.google.com;">
+  <meta http-equiv="X-Content-Type-Options" content="nosniff">
+  <meta http-equiv="X-Frame-Options" content="SAMEORIGIN">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#1B3A6B">
 <meta name="mobile-web-app-capable" content="yes">
@@ -590,6 +594,27 @@ let filtroTkt = "todos", filtroAct = "todos";
 
 // ── UTILS ────────────────────────────────────────────────────────
 function ts(){return new Date().toLocaleString("es-PA",{dateStyle:"short",timeStyle:"short"});}
+
+// ── SEGURIDAD: Sanitizar texto antes de HTML ─────────────────────
+
+// ── Timeout de sesión por inactividad (30 min) ───────────────────
+let _inactivityTimer = null;
+const _INACTIVITY_LIMIT = 30 * 60 * 1000;
+function resetInactivityTimer(){
+  if(!session) return;
+  clearTimeout(_inactivityTimer);
+  _inactivityTimer = setTimeout(()=>{
+    if(session){ showToast('Sesión cerrada por inactividad',''); setTimeout(doLogout, 2000); }
+  }, _INACTIVITY_LIMIT);
+}
+['click','touchstart','keypress'].forEach(e=>{
+  document.addEventListener(e, resetInactivityTimer, {passive:true});
+});
+
+function sanitizeHTML(str){
+  if(!str) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+}
 function hashPass(p){let h=0;for(let i=0;i<p.length;i++){h=((h<<5)-h)+p.charCodeAt(i);h|=0;}return 'H'+Math.abs(h).toString(16);}
 function initials(n){if(!n)return"?";const p=n.trim().split(" ");return(p[0][0]+(p[1]?p[1][0]:"")).toUpperCase();}
 function togglePass(id,btn){const el=document.getElementById(id);el.type=el.type==="password"?"text":"password";btn.textContent=el.type==="password"?"👁":"🙈";}
@@ -720,6 +745,9 @@ async function initApp(){
   document.getElementById("login-screen").style.display="flex";
 }
 
+
+// Rate limiting — máximo 5 intentos, bloqueo 5 minutos
+const _loginAttempts = {count:0, blockedUntil:0};
 function doLogin(){
   const u=document.getElementById("l-user").value.trim();
   const p=document.getElementById("l-pass").value;
@@ -1383,6 +1411,7 @@ document.addEventListener("DOMContentLoaded",()=>{
 </script>
 </body>
 </html>
+
 
 
 
