@@ -251,7 +251,15 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
 /* ── OFFLINE BANNER ───────────────────────────────────────────── */
 .offline-banner{background:var(--amber-l);border-bottom:1px solid var(--amber-m);padding:8px 16px;font-size:12px;color:var(--amber);font-weight:500;text-align:center;display:none;}
 .offline-banner.show{display:block;}
+
+/* QR en Detalle del activo — App Móvil */
+.mob-qr-section{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;margin:10px 0;text-align:center;}
+.mob-qr-title{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;}
+.mob-qr-code{display:inline-block;padding:8px;background:#fff;border-radius:6px;border:1px solid #DDD;}
+.mob-qr-hint{font-size:10px;color:var(--text3);margin-top:8px;}
+
 </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
 <body>
 
@@ -615,6 +623,27 @@ function sanitizeHTML(str){
   if(!str) return '';
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
 }
+
+// ── QR del activo en App Técnico ─────────────────────────────────
+let _mobQRInst = null;
+function generarQRMovil(divId, codigo){
+  try{
+    if(typeof QRCode === 'undefined') return;
+    const el = document.getElementById(divId);
+    if(!el) return;
+    el.innerHTML = '';
+    if(_mobQRInst){ try{_mobQRInst.clear();}catch(e){} _mobQRInst=null; }
+    _mobQRInst = new QRCode(el, {
+      text: codigo,
+      width: 100,
+      height: 100,
+      colorDark:"#000000",
+      colorLight:"#FFFFFF",
+      correctLevel: QRCode.CorrectLevel.M
+    });
+  }catch(e){ console.warn('QR móvil error:',e); }
+}
+
 function hashPass(p){let h=0;for(let i=0;i<p.length;i++){h=((h<<5)-h)+p.charCodeAt(i);h|=0;}return 'H'+Math.abs(h).toString(16);}
 function initials(n){if(!n)return"?";const p=n.trim().split(" ");return(p[0][0]+(p[1]?p[1][0]:"")).toUpperCase();}
 function togglePass(id,btn){const el=document.getElementById(id);el.type=el.type==="password"?"text":"password";btn.textContent=el.type==="password"?"👁":"🙈";}
@@ -924,9 +953,18 @@ function openTicketSheet(codigo){
       <div class="hist-dot ${h.color||"navy"}"></div>
       <div><div class="hist-tipo">${h.tipo}</div><div class="hist-desc">${h.desc}</div><div class="hist-ts">${h.fecha||""} · ${h.usuario||""}</div></div>
     </div>`).join("")||`<div style="font-size:12px;color:var(--text3)">Sin historial</div>`}
+  <div class="mob-qr-section">
+    <div class="mob-qr-title">Código QR del Activo</div>
+    <div class="mob-qr-code">
+      <div id="mob-qr-div"></div>
+    </div>
+    <div class="mob-qr-hint">Escanea con la cámara para identificar este equipo</div>
+  </div>
   `;
 
   document.getElementById("sheet-overlay").classList.add("open");
+  // Generar QR del activo
+  setTimeout(()=>{ generarQRMovil("mob-qr-div", a.codigo); }, 150);
   document.getElementById("ticket-sheet").classList.add("open");
 }
 
@@ -1158,6 +1196,8 @@ function openActivoDetalle(codigo){
     </div>`).join("")||`<div style="font-size:12px;color:var(--text3)">Sin historial</div>`}
   `;
   document.getElementById("sheet-overlay").classList.add("open");
+  // Generar QR del activo
+  setTimeout(()=>{ generarQRMovil("mob-qr-div", a.codigo); }, 150);
   document.getElementById("ticket-sheet").classList.add("open");
 }
 
