@@ -646,6 +646,17 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
       <label class="form-label">Costo ($)</label>
       <input class="form-input" type="number" id="mm-costo" placeholder="0.00">
     </div>
+    <!-- Correo del responsable -->
+    <div style="background:#EBF1FF;border-radius:12px;padding:14px;margin-bottom:12px;border:1px solid #C7D9F5">
+      <div style="font-size:12px;font-weight:700;color:var(--navy);margin-bottom:4px">
+        📧 Correo del responsable del equipo
+      </div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:8px">
+        Opcional — para notificarle que su equipo está en IT
+      </div>
+      <input class="form-input" type="email" id="mm-email-resp"
+        placeholder="correo@dominio.com">
+    </div>
     <!-- Solicitud de piezas -->
     <div style="background:#F0F4F8;border-radius:12px;padding:14px;margin:10px 0;border:1px solid #CBD5E1">
       <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
@@ -1491,7 +1502,8 @@ async function saveMant(){
   if(!activoDetalle) return;
   const desc=document.getElementById("mm-desc").value.trim();
   if(!desc){showToast("La descripción es obligatoria","error");return;}
-  const e={tipo:document.getElementById("mm-tipo").value,desc,fecha:document.getElementById("mm-fecha").value||ts(),tec:session.nombre,costo:parseFloat(document.getElementById("mm-costo").value)||0,usuario:session.nombre,color:"amber"};
+  const emailResp=(document.getElementById("mm-email-resp")?.value||"").trim();
+  const e={tipo:document.getElementById("mm-tipo").value,desc,fecha:document.getElementById("mm-fecha").value||ts(),tec:session.nombre,costo:parseFloat(document.getElementById("mm-costo").value)||0,usuario:session.nombre,emailResp,asignadoA:activoDetalle?.asignado||"—",color:"amber"};
   activoDetalle.historial=activoDetalle.historial||[];
   activoDetalle.historial.push(e);
   const necesitaPiezas=document.getElementById("mm-necesita-piezas")?.checked;
@@ -1507,7 +1519,7 @@ async function saveMant(){
   await apiPost("activos","update",activoDetalle);
   await apiPost("auditoria","insert",{ts:ts(),usuario:session.username,nombre:session.nombre,rol:session.rol,accion:"CREAR",tipo:"Mantenimiento",codigo:activoDetalle.codigo,detalle:`${e.tipo}: ${e.desc}${necesitaPiezas?" | Solicitud de compra":""} | App Móvil`});
   saveCache();
-  ["mm-desc","mm-fecha","mm-costo","mm-piezas-desc","mm-piezas-email","mm-piezas-presupuesto"].forEach(id=>{const el=document.getElementById(id);if(el)el.value="";});
+  ["mm-desc","mm-fecha","mm-costo","mm-email-resp","mm-piezas-desc","mm-piezas-email","mm-piezas-presupuesto"].forEach(id=>{const el=document.getElementById(id);if(el)el.value="";});
   const chk=document.getElementById("mm-necesita-piezas");if(chk){chk.checked=false;toggleMobPiezas(false);}
   showToast("Mantenimiento registrado"+(necesitaPiezas?" + solicitud de compra":"")+" ✓","success");
   closeMant();closeSheet();renderActivos();
@@ -1737,6 +1749,7 @@ document.addEventListener("DOMContentLoaded",()=>{
 </script>
 </body>
 </html>
+
 
 
 
