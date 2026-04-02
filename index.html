@@ -1167,21 +1167,24 @@ function doLogin(){
     document.getElementById("force-pass-screen").style.display="flex";
     return;
   }
-  // Token de sesión única
-  const _tok = Date.now().toString(36) + Math.random().toString(36).slice(2);
+  // Token de sesión única — generado ANTES de mostrar la app
+  const _tok = Date.now().toString(36)+Math.random().toString(36).slice(2)+Math.random().toString(36).slice(2);
   session.token = _tok;
-  apiPost("usuarios","update",{...usuario, ultimoAcceso:ts(), sessionToken:_tok});
+  // Escribir token en Sheets y luego mostrar la app
+  fetch(API, {
+    method:'POST', mode:'no-cors',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({sheet:'usuarios', action:'update', payload:{...usuario, ultimoAcceso:ts(), sessionToken:_tok}})
+  }).finally(()=>{
+    iniciarControlSesionUnicaMobile();
+  });
   document.getElementById("login-screen").style.display="none";
   document.getElementById("app").classList.add("visible");
   document.getElementById("top-avatar").textContent=initials(usuario.nombre);
   document.getElementById("um-name").textContent=usuario.nombre;
   document.getElementById("um-role").textContent=usuario.rol==="admin"?"Administrador":"Técnico";
-  
-  renderDashboard();
-  renderTickets();
-  renderActivos();
-  renderReportes();
-  updateBadge();
+  resetInactivityTimer();
+  renderDashboard();renderTickets();renderActivos();renderReportes();updateBadge();
 }
 
 // ── NAVEGACIÓN ────────────────────────────────────────────────
@@ -1694,25 +1697,44 @@ function confirmLogout(){
 }
 
 function iniciarControlSesionUnicaMobile(){
-  // Verificar cada 2 minutos que nadie más haya iniciado sesión con este usuario
   clearInterval(window._sesionCheck);
   window._sesionCheck = setInterval(async()=>{
-    if(!session) return;
+    if(!session||!session.token) return;
     try{
-      const raw = await apiGetTimeout('usuarios', 8000);
+      const r = await fetch(API+'?sheet=usuarios&t='+Date.now(), {mode:'cors'});
+      if(!r.ok) return;
+      const raw = await r.json();
       if(!Array.isArray(raw)) return;
-      const uRemoto = raw.find(x=>x.username===session.username);
+      const uRemoto = raw.find(x=>String(x.username||'').toLowerCase()===session.username.toLowerCase());
       if(!uRemoto) return;
-      if(uRemoto.sessionToken && uRemoto.sessionToken !== session.token){
+      const tokenRemoto = String(uRemoto.sessionToken||'').trim();
+      const tokenLocal  = String(session.token||'').trim();
+      if(tokenRemoto && tokenLocal && tokenRemoto !== tokenLocal){
         clearInterval(window._sesionCheck);
-        showToast('⛔ Tu sesión fue abierta en otro dispositivo. Cerrando...','');
-        setTimeout(doLogout, 2500);
+        clearTimeout(_inactivityTimer);
+        // Overlay de aviso mobile
+        const ov = document.createElement('div');
+        ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:99999;display:flex;align-items:center;justify-content:center;padding:24px;';
+        ov.innerHTML='<div style="background:#fff;border-radius:16px;padding:28px 24px;text-align:center;max-width:320px">' +
+          '<div style="font-size:44px;margin-bottom:10px">⛔</div>' +
+          '<div style="font-size:17px;font-weight:700;color:#1B3A6B;margin-bottom:8px">Sesión cerrada</div>' +
+          '<div style="font-size:13px;color:#555;line-height:1.5">Tu usuario inició sesión en otro dispositivo. Por seguridad esta sesión fue cerrada.</div></div>';
+        document.body.appendChild(ov);
+        setTimeout(doLogout, 3000);
       }
     }catch(e){}
-  }, 2 * 60 * 1000);
+  }, 30 * 1000); // cada 30 segundos
 }
 
 function doLogout(){
+  // Limpiar token de sesión única en Sheets
+  if(session){
+    const uObj = usuarios.find(x=>x.username===session.username);
+    if(uObj){ uObj.sessionToken=''; apiPost('usuarios','update',uObj); }
+  }
+  // Detener polling de sesión única y timer de inactividad
+  clearInterval(window._sesionCheck);
+  clearTimeout(_inactivityTimer);
   // Registrar en auditoría
   if(session){
     apiPost("auditoria","insert",{
@@ -1864,6 +1886,7 @@ document.addEventListener("DOMContentLoaded",()=>{
 </script>
 </body>
 </html>
+
 
 
 
