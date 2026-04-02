@@ -333,7 +333,7 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
 <div id="splash">
   <div class="splash-logo">SAGAE</div>
   <div class="splash-sub">Sistema de Activos y Gestión Administrativa Educativa</div>
-  <div class="splash-sub" style="font-size:10px;opacity:.6;margin-top:4px">Desarrollado por RYE Design</div>
+  <div class="splash-sub" style="font-size:10px;opacity:.6;margin-top:2px;">Desarrollado por RYE Design</div>
   <div class="splash-spinner"></div>
 </div>
 
@@ -1240,6 +1240,95 @@ function renderDashboard(){
   }).join("");
 }
 
+// ── RENDER TICKETS (pantalla principal de Tickets) ────────────
+function tktCardHTML(t){
+  const dias = t.dead && t.dead!=="—"
+    ? Math.ceil((new Date(t.dead)-new Date())/(24*3600*1000))
+    : null;
+  const deadColor = dias===null?"":dias<0?"var(--red-m)":dias<=1?"var(--red-m)":dias<=3?"var(--amber-m)":"var(--navy)";
+  const deadLabel = dias===null?"":dias<0?"⛔ Vencido":dias===0?"⏰ Hoy":dias===1?"⏰ Mañana":`⏰ En ${dias}d`;
+  return `<div class="tkt-card" onclick="openTicketSheet('${t.codigo}')">
+    <div class="tkt-card-top">
+      <div class="tkt-card-title">${t.titulo}</div>
+      <div class="tkt-card-meta">
+        <span class="badge b-${t.prior}">${t.prior}</span>
+        <span class="badge b-${t.estado}">${t.estado}</span>
+        ${deadLabel?`<span style="font-size:11px;color:${deadColor};font-weight:600">${deadLabel}</span>`:""}
+      </div>
+      ${t.activoNombre&&t.activoNombre!=="—"?`<div style="font-size:11px;color:var(--text3);margin-top:5px">📦 ${t.activoNombre}</div>`:""}
+    </div>
+    <div class="tkt-card-bottom">
+      <span class="tkt-code">${t.codigo}</span>
+      <span style="font-size:11px;color:var(--text3)">👤 ${t.resp||"—"}</span>
+    </div>
+  </div>`;
+}
+
+function renderTickets(){
+  const list = document.getElementById("tickets-list");
+  if(!list) return;
+  let data = tickets.filter(t => t.estado !== "eliminado");
+  if(session?.rol === "tecnico") data = data.filter(t => t.resp === session.nombre);
+  if(filtroTkt !== "todos") data = data.filter(t => t.estado === filtroTkt);
+  if(!data.length){
+    list.innerHTML = `<div class="empty"><div class="empty-icon">🎫</div><div class="empty-title">${filtroTkt==="todos"?"Sin tickets asignados":"Sin tickets en este estado"}</div></div>`;
+    return;
+  }
+  list.innerHTML = data.map(t => tktCardHTML(t)).join("");
+  updateBadge();
+}
+
+function filterTkt(f, el){
+  filtroTkt = f;
+  document.querySelectorAll("#tkt-filters .filter-btn").forEach(b => b.classList.remove("active"));
+  if(el) el.classList.add("active");
+  renderTickets();
+}
+
+function updateBadge(){
+  const badge = document.getElementById("badge-tkt");
+  if(!badge) return;
+  const pendientes = tickets.filter(t =>
+    t.estado !== "eliminado" && t.estado !== "cerrado" &&
+    (session?.rol !== "tecnico" || t.resp === session.nombre)
+  ).length;
+  badge.textContent = pendientes;
+  badge.style.display = pendientes > 0 ? "flex" : "none";
+}
+
+function openTicketSheet(codigo){
+  const t = tickets.find(x => x.codigo === codigo);
+  if(!t) return;
+  document.getElementById("sheet-tkt-title").textContent = t.titulo;
+  document.getElementById("sheet-tkt-code").textContent = `${t.codigo} · ${t.tipo||"ticket"}`;
+  const estadoEl = document.getElementById("sheet-tkt-estado");
+  estadoEl.textContent = t.estado; estadoEl.className = `badge b-${t.estado}`;
+  const actNombre = t.activoNombre && t.activoNombre!=="—" ? t.activoNombre : null;
+  document.getElementById("sheet-body").innerHTML = `
+    <div style="display:flex;gap:10px;margin-bottom:20px">
+      <button class="action-btn" onclick="quickEstado('${t.codigo}')"><span class="action-icon">🔄</span><span>Estado</span></button>
+      <button class="action-btn" onclick="quickAvance('${t.codigo}')"><span class="action-icon">📊</span><span>Avance</span></button>
+      <button class="action-btn" onclick="quickEdit('${t.codigo}')"><span class="action-icon">✏️</span><span>Editar</span></button>
+    </div>
+    <div class="det-field"><div class="det-field-label">Responsable</div><div class="det-field-val">${t.resp||"—"}</div></div>
+    <div class="det-field"><div class="det-field-label">Prioridad</div><div class="det-field-val"><span class="badge b-${t.prior}">${t.prior}</span></div></div>
+    <div class="det-field"><div class="det-field-label">Estado</div><div class="det-field-val"><span class="badge b-${t.estado}">${t.estado}</span></div></div>
+    <div class="det-field"><div class="det-field-label">Avance</div><div class="det-field-val">${t.avance||0}%</div></div>
+    ${t.dead&&t.dead!=="—"?`<div class="det-field"><div class="det-field-label">Deadline</div><div class="det-field-val">${t.dead}</div></div>`:""}
+    ${actNombre?`<div class="det-field"><div class="det-field-label">Activo vinculado</div><div class="det-field-val">📦 ${actNombre}</div></div>`:""}
+    ${t.desc?`<div class="det-field"><div class="det-field-label">Descripción</div><div class="det-field-val" style="white-space:pre-wrap">${t.desc}</div></div>`:""}
+    <div style="margin-top:16px;font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">
+      Historial (${(t.historial||[]).length})
+    </div>
+    ${(t.historial||[]).slice().reverse().map(h=>`<div class="hist-item">
+      <div class="hist-dot ${h.color||"navy"}"></div>
+      <div><div class="hist-tipo">${h.tipo}</div><div class="hist-desc">${h.desc}</div><div class="hist-ts">${h.fecha||""}</div></div>
+    </div>`).join("")||`<div style="font-size:12px;color:var(--text3)">Sin historial</div>`}
+  `;
+  document.getElementById("sheet-overlay").classList.add("open");
+  document.getElementById("ticket-sheet").classList.add("open");
+}
+
 function closeSheet(){
   document.getElementById("sheet-overlay").classList.remove("open");
   document.getElementById("ticket-sheet").classList.remove("open");
@@ -1750,6 +1839,7 @@ document.addEventListener("DOMContentLoaded",()=>{
 </script>
 </body>
 </html>
+
 
 
 
