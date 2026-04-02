@@ -1167,7 +1167,10 @@ function doLogin(){
     document.getElementById("force-pass-screen").style.display="flex";
     return;
   }
-  apiPost("usuarios","update",{...usuario,ultimoAcceso:ts()});
+  // Token de sesión única
+  const _tok = Date.now().toString(36) + Math.random().toString(36).slice(2);
+  session.token = _tok;
+  apiPost("usuarios","update",{...usuario, ultimoAcceso:ts(), sessionToken:_tok});
   document.getElementById("login-screen").style.display="none";
   document.getElementById("app").classList.add("visible");
   document.getElementById("top-avatar").textContent=initials(usuario.nombre);
@@ -1690,6 +1693,25 @@ function confirmLogout(){
   },200);
 }
 
+function iniciarControlSesionUnicaMobile(){
+  // Verificar cada 2 minutos que nadie más haya iniciado sesión con este usuario
+  clearInterval(window._sesionCheck);
+  window._sesionCheck = setInterval(async()=>{
+    if(!session) return;
+    try{
+      const raw = await apiGetTimeout('usuarios', 8000);
+      if(!Array.isArray(raw)) return;
+      const uRemoto = raw.find(x=>x.username===session.username);
+      if(!uRemoto) return;
+      if(uRemoto.sessionToken && uRemoto.sessionToken !== session.token){
+        clearInterval(window._sesionCheck);
+        showToast('⛔ Tu sesión fue abierta en otro dispositivo. Cerrando...','');
+        setTimeout(doLogout, 2500);
+      }
+    }catch(e){}
+  }, 2 * 60 * 1000);
+}
+
 function doLogout(){
   // Registrar en auditoría
   if(session){
@@ -1770,9 +1792,12 @@ async function saveForcePass(){
   document.getElementById("um-name").textContent=session.nombre;
   document.getElementById("um-role").textContent=session.rol==="admin"?"Administrador":"Técnico";
   
-  renderDashboard();renderTickets();renderActivos();renderReportes();updateBadge();
+  renderDashboard();renderTickets();renderActivos();renderReportes();updateBadge();resetInactivityTimer();iniciarControlSesionUnicaMobile();
   showToast("¡Contraseña creada exitosamente! ✓","success");
-  apiPost("usuarios","update",{...usuario,ultimoAcceso:ts()});
+  // Token de sesión única
+  const _tok = Date.now().toString(36) + Math.random().toString(36).slice(2);
+  session.token = _tok;
+  apiPost("usuarios","update",{...usuario, ultimoAcceso:ts(), sessionToken:_tok});
 }
 
 // ── ONLINE / OFFLINE ──────────────────────────────────────────
